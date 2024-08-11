@@ -9,19 +9,14 @@ TagManager:
   - EventSystem
   - Netcode
   - RPCManagement
-  - ScoreSystem
   - SoundSystem
-  - OptionsMenu
-  - CreditsMenu
   - ConnectionMenu
-  - RoleSelectMenu
-  - LevelSelectMenu
   - WinMenu
   - LoseMenu
   - HUD
   - PauseMenu
+  - MainHUD
   - CoordinatorHUD
-  - DaredevilHUD
   layers:
   - Default
   - TransparentFX

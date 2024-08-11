@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 8488818439309020387}
   - component: {fileID: -1208185465450828124}
-  - component: {fileID: 5786345030505518248}
   - component: {fileID: 5676134906436618328}
   - component: {fileID: 144250353172804829}
+  - component: {fileID: -2152904094990260568}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -57,20 +57,6 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
---- !u!114 &5786345030505518248
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5981564049613529622}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 137b682ec71f0924988a8d2e73dc6586, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  daredevilStats: {fileID: 0}
-  coordinatorStats: {fileID: 0}
 --- !u!54 &5676134906436618328
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -121,6 +107,20 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 2
   m_Center: {x: 0, y: 1.31, z: 0}
+--- !u!114 &-2152904094990260568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5981564049613529622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 137b682ec71f0924988a8d2e73dc6586, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  daredevilStats: {fileID: 0}
+  coordinatorStats: {fileID: 0}
 --- !u!1 &8466032875777650228
 GameObject:
   m_ObjectHideFlags: 0

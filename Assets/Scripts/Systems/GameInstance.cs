@@ -17,11 +17,7 @@ public class GameInstance : MonoBehaviour {
     public enum GameState {
         ERROR = 0,
         MAIN_MENU,
-        OPTIONS_MENU,
-        CREDITS_MENU,
         CONNECTION_MENU,
-        ROLE_SELECT_MENU,
-        LEVEL_SELECT_MENU,
         WIN_MENU,
         LOSE_MENU,
         PLAYING,
@@ -66,16 +62,11 @@ public class GameInstance : MonoBehaviour {
     private GameObject netcode;
 
     private GameObject player;
-    private GameObject daredevilHUD;
-    private GameObject coordinatorHUD;
+    private GameObject mainHUD;
 
     private GameObject mainCamera;
     private GameObject mainMenu;
-    private GameObject optionsMenu;
-    private GameObject creditsMenu;
     private GameObject connectionMenu;
-    private GameObject roleSelectMenu;
-    private GameObject levelSelectMenu;
     private GameObject winMenu;
     private GameObject loseMenu;
 
@@ -87,21 +78,15 @@ public class GameInstance : MonoBehaviour {
     private GameObject rpcManagement;
     private RPCManagement rpcManagementScript;
     private SoundSystem soundSystemScript;
-    private ScoreSystem scoreSystemScript;
     private LevelManagement levelManagementScript = new LevelManagement();
     private Player playerScript;
+    private MainHUD mainHUDScript;
 
-    private DaredevilHUD daredevilHUDScript;
-    private CoordinatorHUD coordinatorHUDScript;
 
     private MainCamera mainCameraScript;
     private Netcode netcodeScript;
     private MainMenu mainMenuScript;
-    private OptionsMenu optionsMenuScript;
-    private CreditsMenu creditsMenuScript;
     private ConnectionMenu connectionMenuScript;
-    private RoleSelectMenu roleSelectMenuScript;
-    private LevelSelectMenu levelSelectMenuScript;
     private FadeTransition fadeTransitionScript;
     private LoadingScreen loadingScreenScript;
 
@@ -160,9 +145,7 @@ public class GameInstance : MonoBehaviour {
     }
 
 
-    public static Quaternion GetGyroRotation() {
-        return new Quaternion(0.5f, 0.5f, -0.5f, 0.5f) * Input.gyro.attitude * new Quaternion(0, 0, 1, 0);
-    }
+
     private void SetupApplicationInitialSettings() {
         Input.gyro.enabled = true;
         deviceResolution = Screen.currentResolution;
@@ -235,7 +218,9 @@ public class GameInstance : MonoBehaviour {
         ValidateAndDestroy(mainCamera);
         ValidateAndDestroy(soundSystem);
         ValidateAndDestroy(eventSystem);
+
         ValidateAndDestroy(daredevilHUD);
+
         ValidateAndDestroy(coordinatorHUD);
         ValidateAndDestroy(fadeTransition);
         ValidateAndDestroy(loadingScreen);
@@ -243,11 +228,7 @@ public class GameInstance : MonoBehaviour {
         ValidateAndDestroy(rpcManagement);
         ValidateAndDestroy(netcode);
         ValidateAndDestroy(mainMenu);
-        ValidateAndDestroy(optionsMenu);
-        ValidateAndDestroy(creditsMenu);
         ValidateAndDestroy(connectionMenu);
-        ValidateAndDestroy(levelSelectMenu);
-        ValidateAndDestroy(roleSelectMenu);
         ValidateAndDestroy(pauseMenu);
         ValidateAndDestroy(winMenu);
         ValidateAndDestroy(loseMenu);
@@ -339,9 +320,6 @@ public class GameInstance : MonoBehaviour {
             case GameState.PLAYING:
                 UpdatePlayingState();
                 break;
-            case GameState.LEVEL_SELECT_MENU:
-                UpdateLevelSelectMenuState();
-                break;
             case GameState.CONNECTION_MENU:
                 UpdateConnectionMenuState();
                 break;
@@ -349,10 +327,9 @@ public class GameInstance : MonoBehaviour {
     }
     private void SetupDependencies() {
         mainCameraScript.SetPlayerReference(playerScript);
-        daredevilHUDScript.SetPlayerReference(playerScript);
-        coordinatorHUDScript.SetPlayerReference(playerScript);
-        playerScript.SetCoordinatorHUD(coordinatorHUDScript);
-        playerScript.SetDaredevilHUD(daredevilHUDScript);
+
+
+
 
         if (debugging)
             Log("All dependencies has been setup!");
@@ -385,20 +362,8 @@ public class GameInstance : MonoBehaviour {
             case GameState.MAIN_MENU:
                 SetupMainMenuState();
                 break;
-            case GameState.OPTIONS_MENU:
-                SetupOptionsMenuState();
-                break;
-            case GameState.CREDITS_MENU:
-                SetupCreditsMenuState();
-                break;
-            case GameState.LEVEL_SELECT_MENU:
-                SetupLevelSelectMenuState();
-                break;
             case GameState.CONNECTION_MENU:
                 SetupConnectionMenuState();
-                break;
-            case GameState.ROLE_SELECT_MENU:
-                SetupRoleSelectMenuState();
                 break;
             case GameState.WIN_MENU:
                 SetupWinMenuState();
@@ -420,21 +385,9 @@ public class GameInstance : MonoBehaviour {
             case GameState.MAIN_MENU:
                 fadeTransitionScript.StartTransition(SetupMainMenuState);
                 break;
-            case GameState.OPTIONS_MENU:
-                fadeTransitionScript.StartTransition(SetupOptionsMenuState);
-                break;
-            case GameState.CREDITS_MENU:
-                fadeTransitionScript.StartTransition(SetupCreditsMenuState);
-                break;
-            case GameState.LEVEL_SELECT_MENU:
-                fadeTransitionScript.StartTransition(SetupLevelSelectMenuState);
-                break;
             case GameState.CONNECTION_MENU:
                 //fadeTransitionScript.StartTransition(SetupConnectionMenuState);
                 fadeTransitionScript.StartTransition(SetupLevelSelectMenuState);
-                break;
-            case GameState.ROLE_SELECT_MENU:
-                fadeTransitionScript.StartTransition(SetupRoleSelectMenuState);
                 break;
             case GameState.WIN_MENU:
                 fadeTransitionScript.StartTransition(SetupWinMenuState);
@@ -473,20 +426,6 @@ public class GameInstance : MonoBehaviour {
         SetApplicationTargetFrameRate(menusFrameTarget);
 
     }
-    private void SetupOptionsMenuState() {
-        currentGameState = GameState.OPTIONS_MENU;
-        HideAllMenus();
-        optionsMenu.SetActive(true);
-        SetApplicationTargetFrameRate(menusFrameTarget);
-
-    }
-    private void SetupCreditsMenuState() {
-        currentGameState = GameState.CREDITS_MENU;
-        HideAllMenus();
-        creditsMenu.SetActive(true);
-        SetApplicationTargetFrameRate(menusFrameTarget);
-
-    }
     private void SetupConnectionMenuState() {
         currentGameState = GameState.CONNECTION_MENU;
         HideAllMenus();
@@ -494,21 +433,6 @@ public class GameInstance : MonoBehaviour {
         connectionMenu.SetActive(true);
         SetApplicationTargetFrameRate(menusFrameTarget);
 
-    }
-    private void SetupRoleSelectMenuState() {
-        currentGameState = GameState.ROLE_SELECT_MENU;
-        HideAllMenus();
-        roleSelectMenuScript.SetupMenuStartState();
-        roleSelectMenu.SetActive(true);
-        SetApplicationTargetFrameRate(menusFrameTarget);
-
-    }
-    private void SetupLevelSelectMenuState() {
-        currentGameState = GameState.LEVEL_SELECT_MENU;
-        HideAllMenus();
-        levelSelectMenuScript.SetupMenuStartingState();
-        levelSelectMenu.SetActive(true);
-        SetApplicationTargetFrameRate(menusFrameTarget);
     }
     private void SetupStartState() {
         currentGameState = GameState.PLAYING;
@@ -520,7 +444,7 @@ public class GameInstance : MonoBehaviour {
             SetApplicationTargetFrameRate(gameplayFrameTarget);
 
         scoreSystem.SetActive(true);
-        scoreSystemScript.SetupStartState();
+
         playerScript.SetupStartState();
         player.SetActive(true);
         player.transform.position = levelManagementScript.GetCurrentLoadedLevel().GetSpawnPoint();
@@ -558,10 +482,9 @@ public class GameInstance : MonoBehaviour {
 
         playerScript.AssignPlayerIdentity(Player.Identity.DAREDEVIL);
         playerScript.gameObject.SetActive(true);
-        daredevilHUD.SetActive(true);
+        mainHUD.SetActive(true);
 
-        scoreSystem.SetActive(true);
-        scoreSystemScript.SetupStartState();
+
         playerScript.SetupStartState();
         player.SetActive(true);
         player.transform.position = levelManagementScript.GetCurrentLoadedLevel().GetSpawnPoint();
@@ -579,9 +502,6 @@ public class GameInstance : MonoBehaviour {
         soundSystemScript.Tick();
         netcodeScript.Tick();
     }
-    private void UpdateLevelSelectMenuState() {
-        levelSelectMenuScript.Tick();
-    }
     private void UpdateConnectionMenuState() {
         connectionMenuScript.Tick();
     }
@@ -589,7 +509,6 @@ public class GameInstance : MonoBehaviour {
         mainCameraScript.Tick();
         playerScript.Tick();
         levelManagementScript.Tick();
-        scoreSystemScript.Tick();
     }
     private void UpdateFixedPlayingState() {
         mainCameraScript.FixedTick();
@@ -643,13 +562,9 @@ public class GameInstance : MonoBehaviour {
     private void HideAllMenus() {
         //Add all GUI here!
         mainMenu.SetActive(false);
-        optionsMenu.SetActive(false);
-        creditsMenu.SetActive(false);
-        levelSelectMenu.SetActive(false);
         winMenu.SetActive(false);
         loseMenu.SetActive(false);
         connectionMenu.SetActive(false);
-        roleSelectMenu.SetActive(false);
         pauseMenu.SetActive(false);
         //? huds?
     }
@@ -663,9 +578,6 @@ public class GameInstance : MonoBehaviour {
     public Netcode GetNetcode() { return netcodeScript; }
     public RPCManagement GetRPCManagement() { return rpcManagementScript; }
     public LevelManagement GetLevelManagement() { return levelManagementScript; }
-    public ScoreSystem GetScoreSystem() { return scoreSystemScript; }
-
-    public RoleSelectMenu GetRoleSelectMenu() { return roleSelectMenuScript; }
     public Player GetPlayer() { return playerScript; }
 
 
@@ -737,22 +649,6 @@ public class GameInstance : MonoBehaviour {
             mainMenuScript.Initialize(this);
             Validate(mainMenuScript, "MainMenu component is missing on entity!", ValidationLevel.ERROR, true);
         }
-        else if (asset.CompareTag("OptionsMenu")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            optionsMenu = Instantiate(asset);
-            optionsMenuScript = optionsMenu.GetComponent<OptionsMenu>();
-            Validate(optionsMenuScript, "OptionMenu component is missing on entity!", ValidationLevel.ERROR, true);
-            optionsMenuScript.Initialize(this);
-        }
-        else if (asset.CompareTag("CreditsMenu")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            creditsMenu = Instantiate(asset);
-            creditsMenuScript = creditsMenu.GetComponent<CreditsMenu>();
-            Validate(creditsMenuScript, "CreditsMenu component is missing on entity!", ValidationLevel.ERROR, true);
-            creditsMenuScript.Initialize(this);
-        }
         else if (asset.CompareTag("ConnectionMenu")) {
             if (debugging)
                 Log("Started creating " + asset.name + " entity");
@@ -760,31 +656,6 @@ public class GameInstance : MonoBehaviour {
             connectionMenuScript = connectionMenu.GetComponent<ConnectionMenu>();
             Validate(connectionMenuScript, "ConnectionMenu component is missing on entity!", ValidationLevel.ERROR, true);
             connectionMenuScript.Initialize(this);
-        }
-        else if (asset.CompareTag("RoleSelectMenu")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            roleSelectMenu = Instantiate(asset);
-            roleSelectMenuScript = roleSelectMenu.GetComponent<RoleSelectMenu>();
-            Validate(roleSelectMenuScript, "RoleSelectMenu component is missing on entity!", ValidationLevel.ERROR, true);
-            roleSelectMenuScript.Initialize(this);
-        }
-        else if (asset.CompareTag("ScoreSystem")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            scoreSystem = Instantiate(asset);
-            scoreSystem.SetActive(false);
-            scoreSystemScript = scoreSystem.GetComponent<ScoreSystem>();
-            Validate(scoreSystemScript, "ScoreSystem component is missing on entity!", ValidationLevel.ERROR, true);
-            scoreSystemScript.Initialize(this);
-        }
-        else if (asset.CompareTag("LevelSelectMenu")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            levelSelectMenu = Instantiate(asset);
-            levelSelectMenuScript = levelSelectMenu.GetComponent<LevelSelectMenu>();
-            Validate(levelSelectMenuScript, "LevelSelectMenu component is missing on entity!", ValidationLevel.ERROR, true);
-            levelSelectMenuScript.Initialize(this);
         }
         else if (asset.CompareTag("LoseMenu")) {
             if (debugging)
@@ -796,23 +667,12 @@ public class GameInstance : MonoBehaviour {
                 Log("Started creating " + asset.name + " entity");
             winMenu = Instantiate(asset);
         }
-        else if (asset.CompareTag("DaredevilHUD")) {
+        else if (asset.CompareTag("MainHUD")) {
             if (debugging)
                 Log("Started creating " + asset.name + " entity");
-            daredevilHUD = Instantiate(asset);
-            daredevilHUD.SetActive(false);
-            daredevilHUDScript = daredevilHUD.GetComponent<DaredevilHUD>();
-            Validate(daredevilHUDScript, "DaredevilHUD component is missing on entity!", ValidationLevel.ERROR, true);
-            daredevilHUDScript.Initialize(this);
-        }
-        else if (asset.CompareTag("CoordinatorHUD")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            coordinatorHUD = Instantiate(asset);
-            coordinatorHUD.SetActive(false);
-            coordinatorHUDScript = coordinatorHUD.GetComponent<CoordinatorHUD>();
-            Validate(coordinatorHUDScript, "CoordinatorHUD component is missing on entity!", ValidationLevel.ERROR, true);
-            coordinatorHUDScript.Initialize(this);
+            mainHUD = Instantiate(asset);
+            mainHUDScript = mainHUD.GetComponent<MainHUD>();
+            mainHUDScript.Initialize(this);
         }
         else if (asset.CompareTag("PauseMenu")) {
             if (debugging)
