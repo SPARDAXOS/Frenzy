@@ -7,6 +7,7 @@ using UnityEditor;
 using Unity.Services.Authentication;
 using UnityEngine.EventSystems;
 using Unity.Netcode;
+using Unity.VisualScripting;
 
 public class GameInstance : MonoBehaviour {
 
@@ -58,6 +59,9 @@ public class GameInstance : MonoBehaviour {
     private GameObject soundSystem;
     private GameObject eventSystem;
     private GameObject netcode;
+
+    private GameObject player1Asset;
+    private GameObject player2Asset;
 
     private GameObject player1;
     private GameObject player2;
@@ -444,16 +448,14 @@ public class GameInstance : MonoBehaviour {
         SetApplicationTargetFrameRate(gameplayFrameTarget);
         SetCursorState(false);
 
-        player1Script.SetupStartingState();
-        player2Script.SetupStartingState();
-        player1.SetActive(true);
-        player2.SetActive(true);
         mainHUD.SetActive(true);
 
-
-
-        //Need networking here
         if (netcodeScript.IsHost()) {
+            player1Script.SetupStartingState();
+            player2Script.SetupStartingState();
+            player1.SetActive(true);
+            player2.SetActive(true);
+
             player1Script.SetPlayerID(Player.PlayerID.PLAYER_1);
             player2Script.SetPlayerID(Player.PlayerID.PLAYER_2);
 
@@ -462,10 +464,11 @@ public class GameInstance : MonoBehaviour {
             Vector3 player2SpawnPosition = currentLoadedLevel.GetPlayer2SpawnPoint();
             player1.transform.position = player1SpawnPosition;
             player2.transform.position = player2SpawnPosition;
-        }
-        else {
-            player1Script.SetPlayerID(Player.PlayerID.PLAYER_2);
-            player2Script.SetPlayerID(Player.PlayerID.PLAYER_1);
+
+            ClientRpcParams clientRpcParams = new ClientRpcParams();
+            clientRpcParams.Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { player2NetworkObject.OwnerClientId } };
+            rpcManagementScript.RelayPlayerReferenceClientRpc(player1, Player.PlayerID.PLAYER_1, clientRpcParams);
+            rpcManagementScript.RelayPlayerReferenceClientRpc(player2, Player.PlayerID.PLAYER_2, clientRpcParams);
         }
 
 
@@ -500,12 +503,21 @@ public class GameInstance : MonoBehaviour {
     }
     private void UpdatePlayingState() {
         mainCameraScript.Tick();
-        player1Script.Tick();
+
+        if (player1Script)
+            player1Script.Tick();
+        if (player2Script)
+            player2Script.Tick();
+
         levelManagementScript.Tick();
     }
     private void UpdateFixedPlayingState() {
         mainCameraScript.FixedTick();
-        player1Script.FixedTick();
+
+        if (player1Script)
+            player1Script.FixedTick();
+        if (player2Script)
+            player2Script.FixedTick();
     }
 
 
@@ -531,11 +543,22 @@ public class GameInstance : MonoBehaviour {
         if (levelManagementScript.IsLevelLoaded())
             levelManagementScript.UnloadLevel();
 
-
         gameStarted = false;
-        player1.SetActive(false);
-        player2.SetActive(false);
         mainHUD.SetActive(false);
+
+
+        //Delete them and nullify data (Stop networking?)
+        if (player1)
+            Destroy(player1);
+        if (player2)
+            Destroy(player2);
+
+        player1 = null;
+        player2 = null;
+        player1Script = null;
+        player2Script = null;
+        player1NetworkObject = null;
+        player2NetworkObject = null;
 
         if (gamePaused)
             UnpauseGame();
@@ -563,17 +586,89 @@ public class GameInstance : MonoBehaviour {
 
 
     public bool IsDebuggingEnabled() { return debugging; }
-    public void SetCursorState(bool state) {  Cursor.visible = state; }
+    public void SetCursorState(bool state) {  
+        Cursor.visible = state;
+
+        if (state)
+            Cursor.lockState = CursorLockMode.None;
+        if (!state)
+            Cursor.lockState = CursorLockMode.Locked;
+    }
 
 
+    public void CreatePlayer1(ulong id) {
+        player1 = Instantiate(player1Asset); //? this?
+        player1.name = "NetworkedPlayer_1";
+        player1.SetActive(false);
+        
+        player1Script = player1.GetComponent<Player>();
+        Validate(player1Script, "Player1 component is missing on entity!", ValidationLevel.ERROR, true);
 
-    public void SpawnPlayer1NetworkedObject(ulong id) {
+        player1NetworkObject = player1.GetComponent<NetworkObject>();
+        Validate(player1NetworkObject, "Player1 component is missing on entity!", ValidationLevel.ERROR, true);
+
+        player1Script.Initialize(this);
         player1NetworkObject.SpawnWithOwnership(id);
     }
-    public void SpawnPlayer2NetworkedObject(ulong id) {
+    public void CreatePlayer2(ulong id) {
+        player2 = Instantiate(player2Asset);
+        player2.name = "NetworkedPlayer_2";
+        player2.SetActive(false);
+
+        player2Script = player2.GetComponent<Player>();
+        Validate(player2Script, "Player2 component is missing on entity!", ValidationLevel.ERROR, true);
+
+        player2NetworkObject = player2.GetComponent<NetworkObject>();
+        Validate(player2NetworkObject, "Player2 component is missing on entity!", ValidationLevel.ERROR, true);
+
+        player2Script.Initialize(this);
         player2NetworkObject.SpawnWithOwnership(id);
     }
+    public void SetReceivedPlayerReferenceRpc(NetworkObjectReference reference, Player.PlayerID id) {
+        if (id == Player.PlayerID.NONE)
+            return;
 
+
+        //if (type == Player.PlayerType.PLAYER_1) {
+        //    player1 = reference;
+        //    player1.name = "Player1";
+        //    player1NetworkObject = player1.GetComponent<NetworkObject>();
+        //    player1Script = player1.GetComponent<Player>();
+        //    player1Script.Initialize();
+        //    player1Script.SetPlayerType(Player.PlayerType.PLAYER_1);
+        //    player1Script.SetHUDReference(HUDScript);
+        //    player1Script.DeactivateNetworkedEntity();
+        //}
+        //else if (type == Player.PlayerType.PLAYER_2) {
+        //    player2 = reference;
+        //    player2.name = "Player2";
+        //    player2NetworkObject = player2.GetComponent<NetworkObject>();
+        //    player2Script = player2.GetComponent<Player>();
+        //    player2Script.Initialize();
+        //    player2Script.SetPlayerType(Player.PlayerType.PLAYER_2);
+        //    player2Script.SetHUDReference(HUDScript);
+        //    player2Script.DeactivateNetworkedEntity();
+        //}
+
+
+        if (!player1 && id == Player.PlayerID.PLAYER_1) {
+            player1 = reference;
+            player1.name = "NetworkedPlayer_1";
+            player1NetworkObject = player1.GetComponent<NetworkObject>();
+            player1Script = player1.GetComponent<Player>();
+            player1Script.Initialize(this);
+            player1Script.SetPlayerID(id);
+            //Any other stuff!
+        }
+        else if (!player2 && id == Player.PlayerID.PLAYER_2) {
+            player2 = reference;
+            player2.name = "NetworkedPlayer_2";
+            player2NetworkObject = player2.GetComponent<NetworkObject>();
+            player2Script = player2.GetComponent<Player>();
+            player2Script.Initialize(this);
+            player2Script.SetPlayerID(id);
+        }
+    }
 
     //Getters
     public Netcode GetNetcode() { return netcodeScript; }
@@ -591,28 +686,10 @@ public class GameInstance : MonoBehaviour {
             Log(asset.name + " has been loaded successfully!");
 
         if (asset.CompareTag("Player1")) {
-            player1 = Instantiate(asset);
-            player1.SetActive(false);
-
-            player1Script = player1.GetComponent<Player>();
-            Validate(player1Script, "Player1 component is missing on entity!", ValidationLevel.ERROR, true);
-
-            player1NetworkObject = player1.GetComponent<NetworkObject>();
-            Validate(player1NetworkObject, "Player1 component is missing on entity!", ValidationLevel.ERROR, true);
-
-            player1Script.Initialize(this);
+            player1Asset = asset;
         }
         else if (asset.CompareTag("Player2")) {
-            player2 = Instantiate(asset);
-            player2.SetActive(false);
-
-            player2Script = player2.GetComponent<Player>();
-            Validate(player2Script, "Player2 component is missing on entity!", ValidationLevel.ERROR, true);
-
-            player2NetworkObject = player2.GetComponent<NetworkObject>();
-            Validate(player2NetworkObject, "Player2 component is missing on entity!", ValidationLevel.ERROR, true);
-
-            player2Script.Initialize(this);
+            player2Asset = asset;
         }
         else if (asset.CompareTag("MainCamera")) {
             if (debugging)

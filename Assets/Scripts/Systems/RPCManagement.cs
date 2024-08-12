@@ -51,6 +51,12 @@ public class RPCManagement : NetworkedEntity {
         //gameInstanceRef.Transition(GameState.ROLE_SELECT_MENU);
     }
 
+    //References
+    [ClientRpc]
+    public void RelayPlayerReferenceClientRpc(NetworkObjectReference reference, Player.PlayerID player, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.SetReceivedPlayerReferenceRpc(reference, player);
+    }
+
 
 
 

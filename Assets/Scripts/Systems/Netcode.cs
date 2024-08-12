@@ -267,18 +267,18 @@ public class Netcode : Entity {
             Log("Client " + ID + " has connected!");
 
 
-
+        
 
         Log("Client ID is " + ID);
         connectedClients++; //Disconnecting doesnt trigger this on relay for some reason
 
         //Need to do stuff with the client ID - Server Auth
-
+        
         if (IsHost()) {
             if (connectedClients == 1)
-                gameInstanceRef.SpawnPlayer1NetworkedObject(ID);
+                gameInstanceRef.CreatePlayer1(ID);
             else if (connectedClients == 2) {
-                gameInstanceRef.SpawnPlayer2NetworkedObject(ID);
+                gameInstanceRef.CreatePlayer2(ID);
                 gameInstanceRef.GetRPCManagement().ConfirmConnectionServerRpc();
             }
         }
