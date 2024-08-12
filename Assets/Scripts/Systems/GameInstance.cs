@@ -6,6 +6,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEditor;
 using Unity.Services.Authentication;
 using UnityEngine.EventSystems;
+using Unity.Netcode;
 
 public class GameInstance : MonoBehaviour {
 
@@ -45,9 +46,7 @@ public class GameInstance : MonoBehaviour {
     private bool gameStarted = false;
     private bool gamePaused = false;
 
-    private bool powerSavingMode = false;
     private int menusFrameTarget = 20;
-    private int powerSavingFrameTarget = 30;
     private int gameplayFrameTarget = -1; //RefreshRate
 
     private AsyncOperationHandle<IList<GameObject>> loadedAssetsHandle;
@@ -57,11 +56,11 @@ public class GameInstance : MonoBehaviour {
 
     //Entities
     private GameObject soundSystem;
-    private GameObject scoreSystem;
     private GameObject eventSystem;
     private GameObject netcode;
 
-    private GameObject player;
+    private GameObject player1;
+    private GameObject player2;
     private GameObject mainHUD;
 
     private GameObject mainCamera;
@@ -79,7 +78,11 @@ public class GameInstance : MonoBehaviour {
     private RPCManagement rpcManagementScript;
     private SoundSystem soundSystemScript;
     private LevelManagement levelManagementScript = new LevelManagement();
-    private Player playerScript;
+    private Player player1Script;
+    private Player player2Script;
+    private NetworkObject player1NetworkObject;
+    private NetworkObject player2NetworkObject;
+
     private MainHUD mainHUDScript;
 
 
@@ -204,8 +207,8 @@ public class GameInstance : MonoBehaviour {
         //ADD THE REST OF THE ENTITIES ! CLEAN UP
 
         //Needs reworking after networking solution
-        if (playerScript) //Temp
-            playerScript.CleanUp("Player cleaned up successfully!");
+        if (player1Script) //Temp
+            player1Script.CleanUp("Player cleaned up successfully!");
 
 
         mainCameraScript.CleanUp("MainCamera cleaned up successfully!");
@@ -214,7 +217,8 @@ public class GameInstance : MonoBehaviour {
 
 
         //Needed to guarantee destruction of all entities before attempting to release resources.
-        ValidateAndDestroy(player);
+        ValidateAndDestroy(player1);
+        ValidateAndDestroy(player2);
         ValidateAndDestroy(mainCamera);
         ValidateAndDestroy(soundSystem);
         ValidateAndDestroy(eventSystem);
@@ -324,7 +328,7 @@ public class GameInstance : MonoBehaviour {
         }
     }
     private void SetupDependencies() {
-        mainCameraScript.SetPlayerReference(playerScript);
+        mainCameraScript.SetPlayerReference(player1Script);
 
 
 
@@ -419,6 +423,7 @@ public class GameInstance : MonoBehaviour {
     private void SetupMainMenuState() {
         currentGameState = GameState.MAIN_MENU;
         HideAllMenus();
+        SetCursorState(true);
         mainMenu.SetActive(true);
         SetApplicationTargetFrameRate(menusFrameTarget);
 
@@ -426,6 +431,7 @@ public class GameInstance : MonoBehaviour {
     private void SetupConnectionMenuState() {
         currentGameState = GameState.CONNECTION_MENU;
         HideAllMenus();
+        SetCursorState(true);
         connectionMenuScript.SetupStartState();
         connectionMenu.SetActive(true);
         SetApplicationTargetFrameRate(menusFrameTarget);
@@ -435,32 +441,41 @@ public class GameInstance : MonoBehaviour {
         currentGameState = GameState.PLAYING;
         HideAllMenus();
 
-        if (powerSavingMode)
-            SetApplicationTargetFrameRate(powerSavingFrameTarget); //Make sure to call this the moment the gameplay state is ready!
-        else
-            SetApplicationTargetFrameRate(gameplayFrameTarget);
+        SetApplicationTargetFrameRate(gameplayFrameTarget);
+        SetCursorState(false);
 
-        scoreSystem.SetActive(true);
-
-        playerScript.SetupStartingState();
-        player.SetActive(true);
+        player1Script.SetupStartingState();
+        player2Script.SetupStartingState();
+        player1.SetActive(true);
+        player2.SetActive(true);
+        mainHUD.SetActive(true);
 
 
 
         //Need networking here
-        player.transform.position = levelManagementScript.GetCurrentLoadedLevel().GetPlayer1SpawnPoint();
-        mainHUD.SetActive(true);
-        //Player.Identity assignedIdentity = playerScript.GetPlayerIdentity();
-        //if (assignedIdentity == Player.Identity.DAREDEVIL)
-        //    daredevilHUD.SetActive(true);
-        //else if (assignedIdentity == Player.Identity.COORDINATOR)
-        //    coordinatorHUD.SetActive(true);
+        if (netcodeScript.IsHost()) {
+            player1Script.SetPlayerID(Player.PlayerID.PLAYER_1);
+            player2Script.SetPlayerID(Player.PlayerID.PLAYER_2);
+
+            Level currentLoadedLevel = levelManagementScript.GetCurrentLoadedLevel();
+            Vector3 player1SpawnPosition = currentLoadedLevel.GetPlayer1SpawnPoint();
+            Vector3 player2SpawnPosition = currentLoadedLevel.GetPlayer2SpawnPoint();
+            player1.transform.position = player1SpawnPosition;
+            player2.transform.position = player2SpawnPosition;
+        }
+        else {
+            player1Script.SetPlayerID(Player.PlayerID.PLAYER_2);
+            player2Script.SetPlayerID(Player.PlayerID.PLAYER_1);
+        }
+
+
 
         //Enable controls! turn on and enable huds for each (SetActive(true) pretty much)
     }
     private void SetupWinMenuState() {
         currentGameState = GameState.WIN_MENU;
         HideAllMenus();
+        SetCursorState(true);
         winMenu.SetActive(true);
         SetApplicationTargetFrameRate(menusFrameTarget);
 
@@ -468,35 +483,12 @@ public class GameInstance : MonoBehaviour {
     private void SetupLoseMenuState() {
         currentGameState = GameState.LOSE_MENU;
         HideAllMenus();
+        SetCursorState(true);
         loseMenu.SetActive(true);
         SetApplicationTargetFrameRate(menusFrameTarget);
 
     }
-    private void SetupDebugModeState() {
-        currentGameState = GameState.PLAYING;
-        HideAllMenus();
 
-        if (powerSavingMode)
-            SetApplicationTargetFrameRate(powerSavingFrameTarget); //Make sure to call this the moment the gameplay state is ready!
-        else
-            SetApplicationTargetFrameRate(gameplayFrameTarget);
-
-        //playerScript.AssignPlayerIdentity(Player.Identity.DAREDEVIL);
-        playerScript.gameObject.SetActive(true);
-        mainHUD.SetActive(true);
-
-
-        playerScript.SetupStartingState();
-        player.SetActive(true);
-        //player.transform.position = levelManagementScript.GetCurrentLoadedLevel().GetSpawnPoint();
-    }
-    public void EnterDebugMode() {
-        if (!levelManagementScript.LoadLevel("DebugLevel"))
-            return;
-
-        fadeTransitionScript.StartTransition(SetupDebugModeState); //Will probably be swtiched or combines with loading screen
-        gameStarted = true;
-    }
 
     //State Update
     private void UpdateStatelessSystems() {
@@ -508,12 +500,12 @@ public class GameInstance : MonoBehaviour {
     }
     private void UpdatePlayingState() {
         mainCameraScript.Tick();
-        playerScript.Tick();
+        player1Script.Tick();
         levelManagementScript.Tick();
     }
     private void UpdateFixedPlayingState() {
         mainCameraScript.FixedTick();
-        playerScript.FixedTick();
+        player1Script.FixedTick();
     }
 
 
@@ -541,8 +533,8 @@ public class GameInstance : MonoBehaviour {
 
 
         gameStarted = false;
-        scoreSystem.SetActive(false);
-        player.SetActive(false);
+        player1.SetActive(false);
+        player2.SetActive(false);
         mainHUD.SetActive(false);
 
         if (gamePaused)
@@ -571,14 +563,23 @@ public class GameInstance : MonoBehaviour {
 
 
     public bool IsDebuggingEnabled() { return debugging; }
-    public void SetPowerSavingMode(bool state) { powerSavingMode = state; }
+    public void SetCursorState(bool state) {  Cursor.visible = state; }
+
+
+
+    public void SpawnPlayer1NetworkedObject(ulong id) {
+        player1NetworkObject.SpawnWithOwnership(id);
+    }
+    public void SpawnPlayer2NetworkedObject(ulong id) {
+        player2NetworkObject.SpawnWithOwnership(id);
+    }
 
 
     //Getters
     public Netcode GetNetcode() { return netcodeScript; }
     public RPCManagement GetRPCManagement() { return rpcManagementScript; }
     public LevelManagement GetLevelManagement() { return levelManagementScript; }
-    public Player GetPlayer() { return playerScript; }
+    public Player GetPlayer() { return player1Script; }
 
 
 
@@ -589,19 +590,29 @@ public class GameInstance : MonoBehaviour {
         if (debugging)
             Log(asset.name + " has been loaded successfully!");
 
-        //Notes:
-        //Any asset that get loaded will be used to construct a gameobject while the rest of the assets are still being loaded
-        //Taking advantage of multithreading
+        if (asset.CompareTag("Player1")) {
+            player1 = Instantiate(asset);
+            player1.SetActive(false);
 
+            player1Script = player1.GetComponent<Player>();
+            Validate(player1Script, "Player1 component is missing on entity!", ValidationLevel.ERROR, true);
 
-        //TODO: Do something about this!
+            player1NetworkObject = player1.GetComponent<NetworkObject>();
+            Validate(player1NetworkObject, "Player1 component is missing on entity!", ValidationLevel.ERROR, true);
 
-        if (asset.CompareTag("Player")) {
-            player = Instantiate(asset);
-            player.SetActive(false);
-            playerScript = player.GetComponent<Player>();
-            Validate(playerScript, "Player component is missing on entity!", ValidationLevel.ERROR, true);
-            playerScript.Initialize(this);
+            player1Script.Initialize(this);
+        }
+        else if (asset.CompareTag("Player2")) {
+            player2 = Instantiate(asset);
+            player2.SetActive(false);
+
+            player2Script = player2.GetComponent<Player>();
+            Validate(player2Script, "Player2 component is missing on entity!", ValidationLevel.ERROR, true);
+
+            player2NetworkObject = player2.GetComponent<NetworkObject>();
+            Validate(player2NetworkObject, "Player2 component is missing on entity!", ValidationLevel.ERROR, true);
+
+            player2Script.Initialize(this);
         }
         else if (asset.CompareTag("MainCamera")) {
             if (debugging)
@@ -609,6 +620,8 @@ public class GameInstance : MonoBehaviour {
             mainCamera = Instantiate(asset);
             mainCameraScript = mainCamera.GetComponent<MainCamera>();
             mainCameraScript.Initialize(this);
+            mainCamera.transform.position = new Vector3(0.0f, 0.0f, -10.0f);
+
             //mainCameraScript.SetPlayerReference(player1Script); //Cant guarantee order!
             Validate(mainCameraScript, "MainCamera component is missing on entity!", ValidationLevel.ERROR, true);
         }

@@ -23,6 +23,12 @@ public class Level : Entity {
 
     }
     public void SetupReferences() {
+
+        player1SpawnPoint = transform.Find("Player1SpawnPoint").transform.position;
+        player2SpawnPoint = transform.Find("Player2SpawnPoint").transform.position;
+
+
+
         //Spawn Point
         //Transform spawnPointTransform = transform.Find("SpawnPoint");
         //if (Validate(spawnPointTransform, "No spawn point was found!\nSpawn point set to 0.0.0!", ValidationLevel.WARNING)) {

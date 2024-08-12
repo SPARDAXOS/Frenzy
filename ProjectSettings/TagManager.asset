@@ -16,7 +16,8 @@ TagManager:
   - HUD
   - PauseMenu
   - MainHUD
-  - CoordinatorHUD
+  - Player1
+  - Player2
   layers:
   - Default
   - TransparentFX

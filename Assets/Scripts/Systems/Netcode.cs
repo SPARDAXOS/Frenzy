@@ -275,8 +275,12 @@ public class Netcode : Entity {
         //Need to do stuff with the client ID - Server Auth
 
         if (IsHost()) {
-            if (GetConnectedClientsCount() == 2)
+            if (connectedClients == 1)
+                gameInstanceRef.SpawnPlayer1NetworkedObject(ID);
+            else if (connectedClients == 2) {
+                gameInstanceRef.SpawnPlayer2NetworkedObject(ID);
                 gameInstanceRef.GetRPCManagement().ConfirmConnectionServerRpc();
+            }
         }
     }
     private void OnClientDisconnectCallback(ulong ID) {
