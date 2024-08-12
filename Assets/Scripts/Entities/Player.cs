@@ -21,9 +21,18 @@ public class Player : Entity {
         initialized = true;
     }
     public override void Tick() {
+        if (!initialized)
+            return;
 
     }
     public override void FixedTick() {
+        if (!initialized)
+            return;
+
+    }
+    public void SetupStartingState() {
+        if (!initialized)
+            return;
 
 
     }

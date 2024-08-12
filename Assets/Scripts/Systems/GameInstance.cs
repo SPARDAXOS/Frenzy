@@ -219,9 +219,7 @@ public class GameInstance : MonoBehaviour {
         ValidateAndDestroy(soundSystem);
         ValidateAndDestroy(eventSystem);
 
-        ValidateAndDestroy(daredevilHUD);
-
-        ValidateAndDestroy(coordinatorHUD);
+        ValidateAndDestroy(mainHUD);
         ValidateAndDestroy(fadeTransition);
         ValidateAndDestroy(loadingScreen);
 
@@ -386,8 +384,7 @@ public class GameInstance : MonoBehaviour {
                 fadeTransitionScript.StartTransition(SetupMainMenuState);
                 break;
             case GameState.CONNECTION_MENU:
-                //fadeTransitionScript.StartTransition(SetupConnectionMenuState);
-                fadeTransitionScript.StartTransition(SetupLevelSelectMenuState);
+                fadeTransitionScript.StartTransition(SetupConnectionMenuState);
                 break;
             case GameState.WIN_MENU:
                 fadeTransitionScript.StartTransition(SetupWinMenuState);
@@ -445,15 +442,19 @@ public class GameInstance : MonoBehaviour {
 
         scoreSystem.SetActive(true);
 
-        playerScript.SetupStartState();
+        playerScript.SetupStartingState();
         player.SetActive(true);
-        player.transform.position = levelManagementScript.GetCurrentLoadedLevel().GetSpawnPoint();
 
-        Player.Identity assignedIdentity = playerScript.GetPlayerIdentity();
-        if (assignedIdentity == Player.Identity.DAREDEVIL)
-            daredevilHUD.SetActive(true);
-        else if (assignedIdentity == Player.Identity.COORDINATOR)
-            coordinatorHUD.SetActive(true);
+
+
+        //Need networking here
+        player.transform.position = levelManagementScript.GetCurrentLoadedLevel().GetPlayer1SpawnPoint();
+        mainHUD.SetActive(true);
+        //Player.Identity assignedIdentity = playerScript.GetPlayerIdentity();
+        //if (assignedIdentity == Player.Identity.DAREDEVIL)
+        //    daredevilHUD.SetActive(true);
+        //else if (assignedIdentity == Player.Identity.COORDINATOR)
+        //    coordinatorHUD.SetActive(true);
 
         //Enable controls! turn on and enable huds for each (SetActive(true) pretty much)
     }
@@ -480,14 +481,14 @@ public class GameInstance : MonoBehaviour {
         else
             SetApplicationTargetFrameRate(gameplayFrameTarget);
 
-        playerScript.AssignPlayerIdentity(Player.Identity.DAREDEVIL);
+        //playerScript.AssignPlayerIdentity(Player.Identity.DAREDEVIL);
         playerScript.gameObject.SetActive(true);
         mainHUD.SetActive(true);
 
 
-        playerScript.SetupStartState();
+        playerScript.SetupStartingState();
         player.SetActive(true);
-        player.transform.position = levelManagementScript.GetCurrentLoadedLevel().GetSpawnPoint();
+        //player.transform.position = levelManagementScript.GetCurrentLoadedLevel().GetSpawnPoint();
     }
     public void EnterDebugMode() {
         if (!levelManagementScript.LoadLevel("DebugLevel"))
@@ -518,7 +519,7 @@ public class GameInstance : MonoBehaviour {
 
 
     public bool StartGame() {
-        if (!levelManagementScript.LoadQueuedLevelKey())
+        if (!levelManagementScript.LoadLevel("NormalLevel")) //Hardcoded Level
             return false;
 
         fadeTransitionScript.StartTransition(SetupStartState); //Will probably be swtiched or combines with loading screen
@@ -542,8 +543,7 @@ public class GameInstance : MonoBehaviour {
         gameStarted = false;
         scoreSystem.SetActive(false);
         player.SetActive(false);
-        daredevilHUD.SetActive(false);
-        coordinatorHUD.SetActive(false);
+        mainHUD.SetActive(false);
 
         if (gamePaused)
             UnpauseGame();

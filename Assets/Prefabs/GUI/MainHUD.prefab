@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1605188988513783019}
   - component: {fileID: 4130746601378804709}
   - component: {fileID: 6378315060219302127}
+  - component: {fileID: 1678930201215822437}
   m_Layer: 5
   m_Name: MainHUD
   m_TagString: MainHUD
@@ -101,3 +102,15 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &1678930201215822437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3116731292832420496}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8d032d13d2ee2e4e93098db64d791e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
