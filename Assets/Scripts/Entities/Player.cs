@@ -34,6 +34,7 @@ public class Player : Entity {
 
     public float currentHealth = 0.0f;
     public float currentSpeed = 0.0f;
+
     public Vector2 inputDirection = Vector2.zero;
     public Vector2 velocity = Vector2.zero;
 
@@ -75,7 +76,6 @@ public class Player : Entity {
             Netcode netcodeRef = gameInstanceRef.GetNetcode();
             if (netcodeRef.IsClient() && !netcodeRef.IsHost()) {
                 gameInstanceRef.GetRPCManagement().CalculatePlayer2PositionServerRpc(inputDirection.x);
-                Log("Sending " + inputDirection.x);
             }
         }
 
@@ -158,7 +158,7 @@ public class Player : Entity {
 
     public void ProcessMovementInputRpc(float input) {
 
-        inputDirection.x += input;
+        inputDirection.x = input;
         if (input == 0.0f) {
             movingLeft = false;
             movingRight = false;
@@ -171,6 +171,7 @@ public class Player : Entity {
             movingLeft = false;
             movingRight = true;
         }
+
     }
 
 

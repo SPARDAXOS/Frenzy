@@ -649,6 +649,7 @@ public class GameInstance : MonoBehaviour {
         player2Script = null;
         player1NetworkObject = null;
         player2NetworkObject = null;
+        
 
         if (gamePaused)
             UnpauseGame();

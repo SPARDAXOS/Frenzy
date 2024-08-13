@@ -125,12 +125,6 @@ public class Netcode : Entity {
 
 
     //Connection
-    private void DisconnectAllClients() {
-        foreach(var client in networkManagerRef.ConnectedClients) {
-            if (client.Value.ClientId != (ulong)GetClientID())
-                networkManagerRef.DisconnectClient(client.Value.ClientId, "Server Shutdown");
-        }
-    }
     public bool EnableNetworking() {
         if (currentState == NetworkingState.LOCAL_CLIENT || currentState == NetworkingState.GLOBAL_CLIENT)
             return networkManagerRef.StartClient();
@@ -146,8 +140,6 @@ public class Netcode : Entity {
             Log("Networking has stopped!");
 
         currentState = NetworkingState.NONE;
-        if (IsHost())
-            DisconnectAllClients();
     }
     public bool StartLocalClient(string address) {
         if (enableNetworkLog)
@@ -221,7 +213,8 @@ public class Netcode : Entity {
         if (enableNetworkLog)
             Log("Disconnection request received from " + ID + "\nReason: " + networkManagerRef.DisconnectReason);
 
-           gameInstanceRef.InterruptGame();
+        StopNetworking();
+        gameInstanceRef.InterruptGame();
     }
     private void ConnectionApprovalCallback(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response) {
         if (enableNetworkLog)
