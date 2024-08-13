@@ -1,12 +1,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Rendering.UI;
 using static MyUtility.Utility;
 
 public class Player : Entity {
 
+    [SerializeField] private float healthCap = 100.0f;
+    [SerializeField] private float startingHealth = 100.0f;
     [SerializeField] private float accelerationSpeed = 1.0f;
     [SerializeField] private float decelerationSpeed = 1.0f;
     [SerializeField] private float maxSpeed = 100.0f;
@@ -21,71 +24,85 @@ public class Player : Entity {
     }
 
     private PlayerID currentPlayerID = PlayerID.NONE;
-
+    private bool active = true;
 
     private SpriteRenderer spriteRendererRef;
     private Animator animatorRef;
     private Rigidbody2D rigidbody2DRef;
+    private BoxCollider2D boxCollider2DRef;
+    private NetworkObject networkObjectRef;
 
+    public float currentHealth = 0.0f;
     public float currentSpeed = 0.0f;
-    public Vector2 direction = Vector2.zero;
+    public Vector2 inputDirection = Vector2.zero;
     public Vector2 velocity = Vector2.zero;
 
-    private bool movingRight = false;
-    private bool movingLeft = false;
+    public bool movingRight = false;
+    public bool movingLeft = false;
 
 
     public override void Initialize(GameInstance game) {
         if (initialized)
             return;
 
-
         spriteRendererRef = GetComponent<SpriteRenderer>();
         animatorRef = GetComponent<Animator>();
         rigidbody2DRef = GetComponent<Rigidbody2D>();
+        boxCollider2DRef = GetComponent<BoxCollider2D>();
+        networkObjectRef = GetComponent<NetworkObject>();
 
         gameInstanceRef = game;
         initialized = true;
     }
     public override void Tick() {
-        if (!initialized)
+        if (!initialized || !active)
             return;
         if (currentPlayerID == PlayerID.NONE)
             return;
-        if (gameInstanceRef.GetNetcode().IsClient() && currentPlayerID == PlayerID.PLAYER_1)
-            return;
 
+        if (networkObjectRef.IsOwner)
+            CheckInput();
 
-        movingLeft = Input.GetKey(KeyCode.A);
-        movingRight = Input.GetKey(KeyCode.D);
-
-        if (movingLeft && movingRight)
-            direction.x = 0.0f;
-        else if (movingLeft)
-            direction.x = -1.0f;
-        else if (movingRight)
-            direction.x = 1.0f;
     }
     public override void FixedTick() {
-        if (!initialized)
+        if (!initialized || !active)
             return;
         if (currentPlayerID == PlayerID.NONE)
             return;
-        if (gameInstanceRef.GetNetcode().IsClient() && currentPlayerID == PlayerID.PLAYER_1)
-            return;
 
-        if (movingRight || movingLeft)
-            Accelerate();
-        else
-            Decelerate();
 
+        if (networkObjectRef.IsOwner) {
+            Netcode netcodeRef = gameInstanceRef.GetNetcode();
+            if (netcodeRef.IsClient() && !netcodeRef.IsHost()) {
+                gameInstanceRef.GetRPCManagement().CalculatePlayer2PositionServerRpc(inputDirection.x);
+                Log("Sending " + inputDirection.x);
+            }
+        }
+
+        UpdateSpeed();
         UpdateMovement();
     }
     public void SetupStartingState() {
         if (!initialized)
             return;
 
-
+        currentHealth = startingHealth;
+        //Health reset, etc
+    }
+    public void SetNetworkedEntityState(bool state) {
+        active = state;
+        if (state) {
+            spriteRendererRef.enabled = true;
+            rigidbody2DRef.WakeUp();
+            boxCollider2DRef.enabled = true;
+            animatorRef.enabled = true;
+        }
+        else if (!state) {
+            spriteRendererRef.enabled = false;
+            rigidbody2DRef.Sleep();
+            boxCollider2DRef.enabled = false;
+            animatorRef.enabled = false;
+        }
     }
 
 
@@ -110,15 +127,57 @@ public class Player : Entity {
 
         }
     }
+    private void CheckInput() {
+        bool left = Input.GetKey(KeyCode.A);
+        bool right = Input.GetKey(KeyCode.D);
+        if (gameInstanceRef.GetNetcode().IsHost()) {
+            movingLeft = left;
+            movingRight = right;
+        }
+
+        if (left && right)
+            inputDirection.x = 0.0f;
+        else if (left)
+            inputDirection.x = -1.0f;
+        else if (right)
+            inputDirection.x = 1.0f;
+        else
+            inputDirection.x = 0.0f;
+    }
+    private void UpdateSpeed() {
+        if (movingRight || movingLeft)
+            Accelerate();
+        else
+            Decelerate();
+    }
     private void UpdateMovement() {
-        velocity = direction * currentSpeed;
+        velocity = inputDirection * currentSpeed;
         rigidbody2DRef.velocity = velocity;
     }
 
 
+    public void ProcessMovementInputRpc(float input) {
+
+        inputDirection.x += input;
+        if (input == 0.0f) {
+            movingLeft = false;
+            movingRight = false;
+        }
+        else if (input < 0.0f) {
+            movingLeft = true;
+            movingRight = false;
+        }
+        else if (input > 0.0f) {
+            movingLeft = false;
+            movingRight = true;
+        }
+    }
+
 
     public PlayerID GetPlayerID() { return currentPlayerID; }
     public void SetPlayerID(PlayerID id) { currentPlayerID = id; }
+    public float GetCurrentHealth() { return currentHealth; }
+    public float GetCurrentHealthPercentage() { return currentHealth / healthCap; }
 
 
 }

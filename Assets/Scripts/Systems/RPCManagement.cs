@@ -59,6 +59,11 @@ public class RPCManagement : NetworkedEntity {
 
 
 
+    //Input
+    [ServerRpc(RequireOwnership = false)]
+    public void CalculatePlayer2PositionServerRpc(float input) {
+        gameInstanceRef.ProccessPlayer2MovementRpc(input);
+    }
 
 
 

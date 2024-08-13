@@ -47,7 +47,7 @@ public class GameInstance : MonoBehaviour {
     private bool gameStarted = false;
     private bool gamePaused = false;
 
-    private int menusFrameTarget = 20;
+    private int menusFrameTarget = 60;
     private int gameplayFrameTarget = -1; //RefreshRate
 
     private AsyncOperationHandle<IList<GameObject>> loadedAssetsHandle;
@@ -150,13 +150,108 @@ public class GameInstance : MonoBehaviour {
         assetsLoadingInProgress = !loadedAssetsHandle.IsDone;
         return loadedAssetsHandle.IsDone;
     }
+    private void ProcessLoadedAsset(GameObject asset) {
+        if (!asset)
+            return;
 
+        if (asset.CompareTag("Player1")) {
+            player1Asset = asset;
+        }
+        else if (asset.CompareTag("Player2")) {
+            player2Asset = asset;
+        }
+        else if (asset.CompareTag("MainCamera")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            mainCamera = Instantiate(asset);
+            mainCameraScript = mainCamera.GetComponent<MainCamera>();
+            mainCameraScript.Initialize(this);
+            mainCamera.transform.position = new Vector3(0.0f, 0.0f, -10.0f);
+
+            //mainCameraScript.SetPlayerReference(player1Script); //Cant guarantee order!
+            Validate(mainCameraScript, "MainCamera component is missing on entity!", ValidationLevel.ERROR, true);
+        }
+        else if (asset.CompareTag("SoundSystem")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            soundSystem = Instantiate(asset);
+            soundSystemScript = soundSystem.GetComponent<SoundSystem>();
+            soundSystemScript.Initialize(this);
+            Validate(soundSystemScript, "SoundSystem component is missing on entity!", ValidationLevel.ERROR, true);
+        }
+        else if (asset.CompareTag("RPCManagement")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            rpcManagement = Instantiate(asset);
+            rpcManagementScript = rpcManagement.GetComponent<RPCManagement>();
+            rpcManagementScript.Initialize(this);
+            Validate(rpcManagementScript, "RpcManagement component is missing on entity!", ValidationLevel.ERROR, true);
+        }
+        else if (asset.CompareTag("EventSystem")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            eventSystem = Instantiate(asset);
+        }
+        else if (asset.CompareTag("Netcode")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            netcode = Instantiate(asset);
+            netcodeScript = netcode.GetComponent<Netcode>();
+            netcodeScript.Initialize(this);
+            Validate(netcodeScript, "Netcode component is missing on entity!", ValidationLevel.ERROR, true);
+        }
+        else if (asset.CompareTag("MainMenu")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            mainMenu = Instantiate(asset);
+            mainMenuScript = mainMenu.GetComponent<MainMenu>();
+            mainMenuScript.Initialize(this);
+            Validate(mainMenuScript, "MainMenu component is missing on entity!", ValidationLevel.ERROR, true);
+        }
+        else if (asset.CompareTag("ConnectionMenu")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            connectionMenu = Instantiate(asset);
+            connectionMenuScript = connectionMenu.GetComponent<ConnectionMenu>();
+            Validate(connectionMenuScript, "ConnectionMenu component is missing on entity!", ValidationLevel.ERROR, true);
+            connectionMenuScript.Initialize(this);
+        }
+        else if (asset.CompareTag("LoseMenu")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            loseMenu = Instantiate(asset);
+        }
+        else if (asset.CompareTag("WinMenu")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            winMenu = Instantiate(asset);
+        }
+        else if (asset.CompareTag("MainHUD")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            mainHUD = Instantiate(asset);
+            mainHUDScript = mainHUD.GetComponent<MainHUD>();
+            mainHUDScript.Initialize(this);
+        }
+        else if (asset.CompareTag("PauseMenu")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            pauseMenu = Instantiate(asset);
+        }
+        else if (asset.CompareTag("FadeTransition")) {
+            if (debugging)
+                Log("Started creating " + asset.name + " entity");
+            fadeTransition = Instantiate(asset);
+            fadeTransitionScript = fadeTransition.GetComponent<FadeTransition>();
+            fadeTransitionScript.Initialize(this);
+        }
+        else
+            Warning("Loaded an asset that was not recognized!\n[" + asset.name + "]");
+    }
 
 
     private void SetupApplicationInitialSettings() {
-        Input.gyro.enabled = true;
         deviceResolution = Screen.currentResolution;
-        Input.gyro.updateInterval = 0.0167f; //60Hz
         if (debugging) {
             Log("Application started on device.");
             Log("Device information:\nScreen Width: [" + deviceResolution.width 
@@ -332,9 +427,7 @@ public class GameInstance : MonoBehaviour {
         }
     }
     private void SetupDependencies() {
-        mainCameraScript.SetPlayerReference(player1Script);
-
-
+        //mainCameraScript.SetPlayerReference(player1Script);
 
 
         if (debugging)
@@ -413,12 +506,10 @@ public class GameInstance : MonoBehaviour {
 
     public void PauseGame() {
         gamePaused = true;
-        //Time.timeScale = 0.0f; 
 
     }
     public void UnpauseGame() {
         gamePaused = false;
-        //Time.timeScale = 1.0f; ITS A MULTIPLAYER GAME
 
     }
 
@@ -450,11 +541,14 @@ public class GameInstance : MonoBehaviour {
 
         mainHUD.SetActive(true);
 
+        if (player1Script)
+            player1Script.SetNetworkedEntityState(true);
+        if (player2Script)
+            player2Script.SetNetworkedEntityState(true);
+
         if (netcodeScript.IsHost()) {
             player1Script.SetupStartingState();
             player2Script.SetupStartingState();
-            player1.SetActive(true);
-            player2.SetActive(true);
 
             player1Script.SetPlayerID(Player.PlayerID.PLAYER_1);
             player2Script.SetPlayerID(Player.PlayerID.PLAYER_2);
@@ -470,8 +564,6 @@ public class GameInstance : MonoBehaviour {
             rpcManagementScript.RelayPlayerReferenceClientRpc(player1, Player.PlayerID.PLAYER_1, clientRpcParams);
             rpcManagementScript.RelayPlayerReferenceClientRpc(player2, Player.PlayerID.PLAYER_2, clientRpcParams);
         }
-
-
 
         //Enable controls! turn on and enable huds for each (SetActive(true) pretty much)
     }
@@ -512,7 +604,7 @@ public class GameInstance : MonoBehaviour {
         levelManagementScript.Tick();
     }
     private void UpdateFixedPlayingState() {
-        mainCameraScript.FixedTick();
+        //mainCameraScript.FixedTick();
 
         if (player1Script)
             player1Script.FixedTick();
@@ -546,8 +638,6 @@ public class GameInstance : MonoBehaviour {
         gameStarted = false;
         mainHUD.SetActive(false);
 
-
-        //Delete them and nullify data (Stop networking?)
         if (player1)
             Destroy(player1);
         if (player2)
@@ -597,59 +687,36 @@ public class GameInstance : MonoBehaviour {
 
 
     public void CreatePlayer1(ulong id) {
-        player1 = Instantiate(player1Asset); //? this?
+        player1 = Instantiate(player1Asset);
         player1.name = "NetworkedPlayer_1";
-        player1.SetActive(false);
         
         player1Script = player1.GetComponent<Player>();
         Validate(player1Script, "Player1 component is missing on entity!", ValidationLevel.ERROR, true);
+        player1Script.Initialize(this);
+        player1Script.SetNetworkedEntityState(false);
 
         player1NetworkObject = player1.GetComponent<NetworkObject>();
         Validate(player1NetworkObject, "Player1 component is missing on entity!", ValidationLevel.ERROR, true);
 
-        player1Script.Initialize(this);
         player1NetworkObject.SpawnWithOwnership(id);
     }
     public void CreatePlayer2(ulong id) {
         player2 = Instantiate(player2Asset);
         player2.name = "NetworkedPlayer_2";
-        player2.SetActive(false);
 
         player2Script = player2.GetComponent<Player>();
         Validate(player2Script, "Player2 component is missing on entity!", ValidationLevel.ERROR, true);
+        player2Script.Initialize(this);
+        player2Script.SetNetworkedEntityState(false);
 
         player2NetworkObject = player2.GetComponent<NetworkObject>();
         Validate(player2NetworkObject, "Player2 component is missing on entity!", ValidationLevel.ERROR, true);
 
-        player2Script.Initialize(this);
         player2NetworkObject.SpawnWithOwnership(id);
     }
     public void SetReceivedPlayerReferenceRpc(NetworkObjectReference reference, Player.PlayerID id) {
         if (id == Player.PlayerID.NONE)
             return;
-
-
-        //if (type == Player.PlayerType.PLAYER_1) {
-        //    player1 = reference;
-        //    player1.name = "Player1";
-        //    player1NetworkObject = player1.GetComponent<NetworkObject>();
-        //    player1Script = player1.GetComponent<Player>();
-        //    player1Script.Initialize();
-        //    player1Script.SetPlayerType(Player.PlayerType.PLAYER_1);
-        //    player1Script.SetHUDReference(HUDScript);
-        //    player1Script.DeactivateNetworkedEntity();
-        //}
-        //else if (type == Player.PlayerType.PLAYER_2) {
-        //    player2 = reference;
-        //    player2.name = "Player2";
-        //    player2NetworkObject = player2.GetComponent<NetworkObject>();
-        //    player2Script = player2.GetComponent<Player>();
-        //    player2Script.Initialize();
-        //    player2Script.SetPlayerType(Player.PlayerType.PLAYER_2);
-        //    player2Script.SetHUDReference(HUDScript);
-        //    player2Script.DeactivateNetworkedEntity();
-        //}
-
 
         if (!player1 && id == Player.PlayerID.PLAYER_1) {
             player1 = reference;
@@ -658,7 +725,7 @@ public class GameInstance : MonoBehaviour {
             player1Script = player1.GetComponent<Player>();
             player1Script.Initialize(this);
             player1Script.SetPlayerID(id);
-            //Any other stuff!
+            player1Script.SetNetworkedEntityState(false);
         }
         else if (!player2 && id == Player.PlayerID.PLAYER_2) {
             player2 = reference;
@@ -667,7 +734,12 @@ public class GameInstance : MonoBehaviour {
             player2Script = player2.GetComponent<Player>();
             player2Script.Initialize(this);
             player2Script.SetPlayerID(id);
+            player2Script.SetNetworkedEntityState(false);
         }
+    }
+    public void ProccessPlayer2MovementRpc(float input) {
+        if (player2Script)
+            player2Script.ProcessMovementInputRpc(input);
     }
 
     //Getters
@@ -685,103 +757,8 @@ public class GameInstance : MonoBehaviour {
         if (debugging)
             Log(asset.name + " has been loaded successfully!");
 
-        if (asset.CompareTag("Player1")) {
-            player1Asset = asset;
-        }
-        else if (asset.CompareTag("Player2")) {
-            player2Asset = asset;
-        }
-        else if (asset.CompareTag("MainCamera")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            mainCamera = Instantiate(asset);
-            mainCameraScript = mainCamera.GetComponent<MainCamera>();
-            mainCameraScript.Initialize(this);
-            mainCamera.transform.position = new Vector3(0.0f, 0.0f, -10.0f);
-
-            //mainCameraScript.SetPlayerReference(player1Script); //Cant guarantee order!
-            Validate(mainCameraScript, "MainCamera component is missing on entity!", ValidationLevel.ERROR, true);
-        }
-        else if (asset.CompareTag("SoundSystem")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            soundSystem = Instantiate(asset);
-            soundSystemScript = soundSystem.GetComponent<SoundSystem>();
-            soundSystemScript.Initialize(this);
-            Validate(soundSystemScript, "SoundSystem component is missing on entity!", ValidationLevel.ERROR, true);
-        }
-        else if (asset.CompareTag("RPCManagement")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            rpcManagement = Instantiate(asset);
-            rpcManagementScript = rpcManagement.GetComponent<RPCManagement>();
-            rpcManagementScript.Initialize(this);
-            Validate(rpcManagementScript, "RpcManagement component is missing on entity!", ValidationLevel.ERROR, true);
-        }
-        else if (asset.CompareTag("EventSystem")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            eventSystem = Instantiate(asset);
-        }
-        else if (asset.CompareTag("Netcode")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            netcode = Instantiate(asset);
-            netcodeScript = netcode.GetComponent<Netcode>();
-            netcodeScript.Initialize(this);
-            Validate(netcodeScript, "Netcode component is missing on entity!", ValidationLevel.ERROR, true);
-        }
-        else if (asset.CompareTag("MainMenu")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            mainMenu = Instantiate(asset);
-            mainMenuScript = mainMenu.GetComponent<MainMenu>();
-            mainMenuScript.Initialize(this);
-            Validate(mainMenuScript, "MainMenu component is missing on entity!", ValidationLevel.ERROR, true);
-        }
-        else if (asset.CompareTag("ConnectionMenu")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            connectionMenu = Instantiate(asset);
-            connectionMenuScript = connectionMenu.GetComponent<ConnectionMenu>();
-            Validate(connectionMenuScript, "ConnectionMenu component is missing on entity!", ValidationLevel.ERROR, true);
-            connectionMenuScript.Initialize(this);
-        }
-        else if (asset.CompareTag("LoseMenu")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            loseMenu = Instantiate(asset);
-        }
-        else if (asset.CompareTag("WinMenu")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            winMenu = Instantiate(asset);
-        }
-        else if (asset.CompareTag("MainHUD")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            mainHUD = Instantiate(asset);
-            mainHUDScript = mainHUD.GetComponent<MainHUD>();
-            mainHUDScript.Initialize(this);
-        }
-        else if (asset.CompareTag("PauseMenu")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            pauseMenu = Instantiate(asset);
-        }
-        else if (asset.CompareTag("FadeTransition")) {
-            if (debugging)
-                Log("Started creating " + asset.name + " entity");
-            fadeTransition = Instantiate(asset);
-            fadeTransitionScript = fadeTransition.GetComponent<FadeTransition>();
-            fadeTransitionScript.Initialize(this);
-        }
-        else
-            Warning("Loaded an asset that was not recognized!\n[" + asset.name + "]");
+        ProcessLoadedAsset(asset);
     }
-
-
-
     private void FinishedLoadingLoadingScreenCallback(AsyncOperationHandle<GameObject> handle) {
         if (handle.Status == AsyncOperationStatus.Succeeded) {
             if (debugging)
@@ -794,7 +771,6 @@ public class GameInstance : MonoBehaviour {
             if (assetsLoadingInProgress)
                 loadingScreenScript.StartLoadingProcess(LoadingScreen.LoadingProcess.LOADING_ASSETS);
 
-            //Start Using it?
             if (debugging)
                 Log("Created " + handle.Result.name);
         }
@@ -806,7 +782,6 @@ public class GameInstance : MonoBehaviour {
         if (handle.Status == AsyncOperationStatus.Succeeded) {
             if (debugging)
                 Log("Finished loading assets successfully!");
-            //assetsLoadingInProgress = false; //Move this to function that checks the status of the assets handle and the levels bundle handle!
         }
         else if (handle.Status == AsyncOperationStatus.Failed) {
             QuitApplication("Failed to load assets!\nCheck if label is correct.");
