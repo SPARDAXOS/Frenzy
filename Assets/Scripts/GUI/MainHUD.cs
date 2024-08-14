@@ -156,6 +156,8 @@ public class MainHUD : Entity {
     }
 
 
+
+
     //Chat
     private void SetChatState(bool state, bool cursorState, bool select = false) {
         if (!chat)

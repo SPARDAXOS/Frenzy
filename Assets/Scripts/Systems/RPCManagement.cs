@@ -62,7 +62,7 @@ public class RPCManagement : NetworkedEntity {
     //Input
     [ServerRpc(RequireOwnership = false)]
     public void CalculatePlayer2PositionServerRpc(float input) {
-        gameInstanceRef.ProccessPlayer2MovementRpc(input);
+        gameInstanceRef.ProcessPlayer2MovementRpc(input);
     }
 
     //Animations
@@ -72,9 +72,39 @@ public class RPCManagement : NetworkedEntity {
     }
 
 
+
+    //HUD
+    [ServerRpc(RequireOwnership = false)]
+    public void UpdatePlayerHealthServerRpc(float amount, ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
+
+        RelayPlayerHealthClientRpc(amount, (ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelayPlayerHealthClientRpc(float amount, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProcessPlayerHealthRpc(amount);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void UpdatePlayerMoneyServerRpc(int amount, ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
+
+        RelayPlayerMoneyClientRpc(amount, (ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelayPlayerMoneyClientRpc(int amount, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProcessPlayerMoneyRpc(amount);
+    }
+
+
+
     //Sprite Orientation
     [ServerRpc(RequireOwnership = false)]
-    public void SendSpriteOrientationServerRpc(bool flipX, ulong senderID) {
+    public void UpdateSpriteOrientationServerRpc(bool flipX, ulong senderID) {
         ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
         if (clientRpcParams == null)
             return;
@@ -99,6 +129,6 @@ public class RPCManagement : NetworkedEntity {
     }
     [ClientRpc]
     public void RelayChatMessageClientRpc(FixedString32Bytes message, ClientRpcParams clientRpcParameters = default) {
-        gameInstanceRef.ProccessReceivedChatMessage(message.ToString());
+        gameInstanceRef.ProcessReceivedChatMessage(message.ToString());
     }
 }

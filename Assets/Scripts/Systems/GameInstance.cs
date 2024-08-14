@@ -736,15 +736,6 @@ public class GameInstance : MonoBehaviour {
         if (id == Player.PlayerID.NONE)
             return;
 
-        //if (player1Script) {
-        //    player1Script.SetupStartingState();
-        //    player1Script.SetNetworkedEntityState(true);
-        //}
-        //if (player2Script) { //Put all of these in the func where i get the refs for these to confirm it
-        //    player2Script.SetupStartingState();
-        //    player2Script.SetNetworkedEntityState(true);
-        //}
-
         if (!player1 && id == Player.PlayerID.PLAYER_1) {
             player1 = reference;
             player1.name = "NetworkedPlayer_1";
@@ -768,7 +759,7 @@ public class GameInstance : MonoBehaviour {
             //player2Script.SetNetworkedEntityState(false);
         }
     }
-    public void ProccessPlayer2MovementRpc(float input) {
+    public void ProcessPlayer2MovementRpc(float input) {
         if (player2Script)
             player2Script.ProcessMovementInputRpc(input);
     }
@@ -776,7 +767,7 @@ public class GameInstance : MonoBehaviour {
         if (player2Script)
             player2Script.SetMovementAnimationState(state);
     }
-    public void ProccessReceivedChatMessage(string message) {
+    public void ProcessReceivedChatMessage(string message) {
         mainHUDScript.AddReceivedChatMessage(message);
     }
     public void ProcessPlayerSpriteOrientation(bool flipX) {
@@ -785,6 +776,21 @@ public class GameInstance : MonoBehaviour {
         else
             player1Script.ProcessSpriteOrientationRpc(flipX);
     }
+    public void ProcessPlayerHealthRpc(float amount) {
+        if (netcodeScript.IsHost())
+            mainHUDScript.UpdatePlayerHealth(amount, Player.PlayerID.PLAYER_2);
+        else
+            mainHUDScript.UpdatePlayerHealth(amount, Player.PlayerID.PLAYER_1);
+    }
+    public void ProcessPlayerMoneyRpc(int amount) {
+        if (netcodeScript.IsHost())
+            mainHUDScript.UpdatePlayerMoneyCount(amount, Player.PlayerID.PLAYER_2);
+        else
+            mainHUDScript.UpdatePlayerMoneyCount(amount, Player.PlayerID.PLAYER_1);
+    }
+
+
+
 
     //Getters
     public Netcode GetNetcode() { return netcodeScript; }

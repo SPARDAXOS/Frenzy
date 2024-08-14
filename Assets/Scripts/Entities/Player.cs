@@ -90,8 +90,15 @@ public class Player : Entity {
 
         currentHealth = startingHealth;
         currentMoney = 42;
+
+        //To func?
         mainHUDRef.UpdatePlayerHealth(GetCurrentHealthPercentage(), currentPlayerID);
         mainHUDRef.UpdatePlayerMoneyCount(currentMoney, currentPlayerID);
+        RPCManagement management = gameInstanceRef.GetRPCManagement();
+        management.UpdatePlayerHealthServerRpc(currentHealth, Netcode.GetClientID());
+        management.UpdatePlayerMoneyServerRpc(currentMoney, Netcode.GetClientID());
+
+
         //Health reset, etc
     }
     public void SetNetworkedEntityState(bool state) {
@@ -190,17 +197,16 @@ public class Player : Entity {
         RPCManagement management = gameInstanceRef.GetRPCManagement();
         if (input > 0.0f && spriteRendererRef.flipX) {
             spriteRendererRef.flipX = false;
-            management.SendSpriteOrientationServerRpc(spriteRendererRef.flipX, Netcode.GetClientID());
+            management.UpdateSpriteOrientationServerRpc(spriteRendererRef.flipX, Netcode.GetClientID());
         }
         else if (input < 0.0f && !spriteRendererRef.flipX) {
             spriteRendererRef.flipX = true;
-            management.SendSpriteOrientationServerRpc(spriteRendererRef.flipX, Netcode.GetClientID());
+            management.UpdateSpriteOrientationServerRpc(spriteRendererRef.flipX, Netcode.GetClientID());
         }
     }
     public void ProcessSpriteOrientationRpc(bool flipX) {
         spriteRendererRef.flipX = flipX;
     }
-
     public void ProcessMovementInputRpc(float input) {
 
         inputDirection.x = input;
@@ -217,6 +223,20 @@ public class Player : Entity {
             movingRight = true;
         }
     }
+
+
+    public void ProcessPlayerHealthRpc(float amount) {
+        currentHealth = amount;
+        //Check death?
+        //This is incorrect! Im getting player 2s health sent to me. Process should be broken in 2. Value to just update?? idk
+        if (currentPlayerID == PlayerID.PLAYER_1)
+            mainHUDRef.UpdatePlayerHealth(amount, Player.PlayerID.PLAYER_2);
+        else if (currentPlayerID == PlayerID.PLAYER_1)
+            mainHUDRef.UpdatePlayerHealth(amount, Player.PlayerID.PLAYER_1);
+    }
+
+    //Probably need to update not only the hud but the value here too!
+    //So the game instance calls this here which sets the value then updates the hud from here!
 
 
     public PlayerID GetPlayerID() { return currentPlayerID; }
