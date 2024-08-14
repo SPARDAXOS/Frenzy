@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using static GameInstance;
@@ -48,8 +49,8 @@ public class RPCManagement : NetworkedEntity {
     [ClientRpc]
     public void RelayConnectionConfirmationClientRpc() {
         gameInstanceRef.StartGame();
-        //gameInstanceRef.Transition(GameState.ROLE_SELECT_MENU);
     }
+
 
     //References
     [ClientRpc]
@@ -58,27 +59,46 @@ public class RPCManagement : NetworkedEntity {
     }
 
 
-
     //Input
     [ServerRpc(RequireOwnership = false)]
     public void CalculatePlayer2PositionServerRpc(float input) {
         gameInstanceRef.ProccessPlayer2MovementRpc(input);
     }
 
+    //Animations
+    [ServerRpc(RequireOwnership = false)]
+    public void NotifyMovementAnimationStateServerRpc(bool state) {
+        gameInstanceRef.ProcessPlayer2MovementAnimationState(state);
+    }
 
 
-    //[ServerRpc(RequireOwnership = false)]
-    //public void SetBoostStateServerRpc(ulong senderID, bool state) {
-    //    ClientRpcParams? clientParams = CreateClientRpcParams(senderID);
-    //    if (clientParams == null) {
-    //        Warning("Invalid client rpc params returned at UpdateReadyCheckServerRpc");
-    //        return;
-    //    }
+    //Sprite Orientation
+    [ServerRpc(RequireOwnership = false)]
+    public void SendSpriteOrientationServerRpc(bool flipX, ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
 
-    //    RelayBoostStateClientRpc(senderID, state, clientParams.Value);
-    //}
-    //[ClientRpc]
-    //public void RelayBoostStateClientRpc(ulong senderID, bool state, ClientRpcParams paramsPack) {
-    //    gameInstanceRef.GetPlayer().GetDaredevilData().SetBoostState(state);
-    //}
+        RelaySpriteOrientationClientRpc(flipX, (ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelaySpriteOrientationClientRpc(bool flipX, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProcessPlayerSpriteOrientation(flipX);
+    }
+
+
+
+    //Chat
+    [ServerRpc(RequireOwnership = false)]
+    public void SendChatMessageServerRpc(FixedString32Bytes message, ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
+
+        RelayChatMessageClientRpc(message, (ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelayChatMessageClientRpc(FixedString32Bytes message, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProccessReceivedChatMessage(message.ToString());
+    }
 }

@@ -541,17 +541,18 @@ public class GameInstance : MonoBehaviour {
 
         mainHUD.SetActive(true);
 
-        if (player1Script)
-            player1Script.SetNetworkedEntityState(true);
-        if (player2Script)
-            player2Script.SetNetworkedEntityState(true);
+        //if (player1Script) {
+        //    player1Script.SetupStartingState();
+        //    player1Script.SetNetworkedEntityState(true);
+        //}
+        //if (player2Script) { //Put all of these in the func where i get the refs for these to confirm it
+        //    player2Script.SetupStartingState();
+        //    player2Script.SetNetworkedEntityState(true);
+        //}
+
+
 
         if (netcodeScript.IsHost()) {
-            player1Script.SetupStartingState();
-            player2Script.SetupStartingState();
-
-            player1Script.SetPlayerID(Player.PlayerID.PLAYER_1);
-            player2Script.SetPlayerID(Player.PlayerID.PLAYER_2);
 
             Level currentLoadedLevel = levelManagementScript.GetCurrentLoadedLevel();
             Vector3 player1SpawnPosition = currentLoadedLevel.GetPlayer1SpawnPoint();
@@ -563,6 +564,13 @@ public class GameInstance : MonoBehaviour {
             clientRpcParams.Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { player2NetworkObject.OwnerClientId } };
             rpcManagementScript.RelayPlayerReferenceClientRpc(player1, Player.PlayerID.PLAYER_1, clientRpcParams);
             rpcManagementScript.RelayPlayerReferenceClientRpc(player2, Player.PlayerID.PLAYER_2, clientRpcParams);
+
+
+            player1Script.SetupStartingState();
+            player2Script.SetupStartingState();
+
+            player1Script.SetNetworkedEntityState(true);
+            player2Script.SetNetworkedEntityState(true);
         }
 
         //Enable controls! turn on and enable huds for each (SetActive(true) pretty much)
@@ -601,6 +609,7 @@ public class GameInstance : MonoBehaviour {
         if (player2Script)
             player2Script.Tick();
 
+        mainHUDScript.Tick();
         levelManagementScript.Tick();
     }
     private void UpdateFixedPlayingState() {
@@ -693,6 +702,10 @@ public class GameInstance : MonoBehaviour {
         
         player1Script = player1.GetComponent<Player>();
         Validate(player1Script, "Player1 component is missing on entity!", ValidationLevel.ERROR, true);
+
+        player1Script.SetMainHUDRef(mainHUDScript);
+        player1Script.SetPlayerID(Player.PlayerID.PLAYER_1);
+
         player1Script.Initialize(this);
         player1Script.SetNetworkedEntityState(false);
 
@@ -707,6 +720,10 @@ public class GameInstance : MonoBehaviour {
 
         player2Script = player2.GetComponent<Player>();
         Validate(player2Script, "Player2 component is missing on entity!", ValidationLevel.ERROR, true);
+
+        player2Script.SetMainHUDRef(mainHUDScript);
+        player2Script.SetPlayerID(Player.PlayerID.PLAYER_2);
+
         player2Script.Initialize(this);
         player2Script.SetNetworkedEntityState(false);
 
@@ -719,6 +736,15 @@ public class GameInstance : MonoBehaviour {
         if (id == Player.PlayerID.NONE)
             return;
 
+        //if (player1Script) {
+        //    player1Script.SetupStartingState();
+        //    player1Script.SetNetworkedEntityState(true);
+        //}
+        //if (player2Script) { //Put all of these in the func where i get the refs for these to confirm it
+        //    player2Script.SetupStartingState();
+        //    player2Script.SetNetworkedEntityState(true);
+        //}
+
         if (!player1 && id == Player.PlayerID.PLAYER_1) {
             player1 = reference;
             player1.name = "NetworkedPlayer_1";
@@ -726,7 +752,9 @@ public class GameInstance : MonoBehaviour {
             player1Script = player1.GetComponent<Player>();
             player1Script.Initialize(this);
             player1Script.SetPlayerID(id);
-            player1Script.SetNetworkedEntityState(false);
+            player1Script.SetMainHUDRef(mainHUDScript);
+            player1Script.SetupStartingState();
+            //player1Script.SetNetworkedEntityState(false);
         }
         else if (!player2 && id == Player.PlayerID.PLAYER_2) {
             player2 = reference;
@@ -735,12 +763,27 @@ public class GameInstance : MonoBehaviour {
             player2Script = player2.GetComponent<Player>();
             player2Script.Initialize(this);
             player2Script.SetPlayerID(id);
-            player2Script.SetNetworkedEntityState(false);
+            player2Script.SetMainHUDRef(mainHUDScript);
+            player2Script.SetupStartingState();
+            //player2Script.SetNetworkedEntityState(false);
         }
     }
     public void ProccessPlayer2MovementRpc(float input) {
         if (player2Script)
             player2Script.ProcessMovementInputRpc(input);
+    }
+    public void ProcessPlayer2MovementAnimationState(bool state) {
+        if (player2Script)
+            player2Script.SetMovementAnimationState(state);
+    }
+    public void ProccessReceivedChatMessage(string message) {
+        mainHUDScript.AddReceivedChatMessage(message);
+    }
+    public void ProcessPlayerSpriteOrientation(bool flipX) {
+        if (netcodeScript.IsHost())
+            player2Script.ProcessSpriteOrientationRpc(flipX);
+        else
+            player1Script.ProcessSpriteOrientationRpc(flipX);
     }
 
     //Getters

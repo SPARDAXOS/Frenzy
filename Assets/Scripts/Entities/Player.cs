@@ -9,7 +9,7 @@ using static MyUtility.Utility;
 public class Player : Entity {
 
     [SerializeField] private float healthCap = 100.0f;
-    [SerializeField] private float startingHealth = 100.0f;
+    [SerializeField] private float startingHealth = 20.0f;
     [SerializeField] private float accelerationSpeed = 1.0f;
     [SerializeField] private float decelerationSpeed = 1.0f;
     [SerializeField] private float maxSpeed = 100.0f;
@@ -31,9 +31,11 @@ public class Player : Entity {
     private Rigidbody2D rigidbody2DRef;
     private BoxCollider2D boxCollider2DRef;
     private NetworkObject networkObjectRef;
+    private MainHUD mainHUDRef;
 
     public float currentHealth = 0.0f;
     public float currentSpeed = 0.0f;
+    public int currentMoney = 0;
 
     public Vector2 inputDirection = Vector2.zero;
     public Vector2 velocity = Vector2.zero;
@@ -87,6 +89,9 @@ public class Player : Entity {
             return;
 
         currentHealth = startingHealth;
+        currentMoney = 42;
+        mainHUDRef.UpdatePlayerHealth(GetCurrentHealthPercentage(), currentPlayerID);
+        mainHUDRef.UpdatePlayerMoneyCount(currentMoney, currentPlayerID);
         //Health reset, etc
     }
     public void SetNetworkedEntityState(bool state) {
@@ -130,10 +135,6 @@ public class Player : Entity {
     private void CheckInput() {
         bool left = Input.GetKey(KeyCode.A);
         bool right = Input.GetKey(KeyCode.D);
-        if (gameInstanceRef.GetNetcode().IsHost()) {
-            movingLeft = left;
-            movingRight = right;
-        }
 
         if (left && right)
             inputDirection.x = 0.0f;
@@ -143,7 +144,35 @@ public class Player : Entity {
             inputDirection.x = 1.0f;
         else
             inputDirection.x = 0.0f;
+
+        UpdateSpriteOrientation(inputDirection.x);
+
+
+        Netcode netcodeRef = gameInstanceRef.GetNetcode();
+        if (netcodeRef.IsHost()) {
+            movingLeft = left;
+            movingRight = right;
+            if (inputDirection.x != 0.0f && !animatorRef.GetBool("isMoving"))
+                SetMovementAnimationState(true);
+            else if (inputDirection.x == 0.0f && animatorRef.GetBool("isMoving"))
+                SetMovementAnimationState(false);
+        }
+        else if (netcodeRef.IsClient() && !netcodeRef.IsHost()) {
+
+            if (inputDirection.x != 0.0f && !animatorRef.GetBool("isMoving"))
+                gameInstanceRef.GetRPCManagement().NotifyMovementAnimationStateServerRpc(true);
+            else if (inputDirection.x == 0.0f && animatorRef.GetBool("isMoving"))
+                gameInstanceRef.GetRPCManagement().NotifyMovementAnimationStateServerRpc(false);
+        }
     }
+
+
+    //Animations
+    public void SetMovementAnimationState(bool state) {
+        animatorRef.SetBool("isMoving", state);
+    }
+
+
     private void UpdateSpeed() {
         if (movingRight || movingLeft)
             Accelerate();
@@ -154,7 +183,23 @@ public class Player : Entity {
         velocity = inputDirection * currentSpeed;
         rigidbody2DRef.velocity = velocity;
     }
+    private void UpdateSpriteOrientation(float input) {
+        if (input == 0.0f)
+            return;
 
+        RPCManagement management = gameInstanceRef.GetRPCManagement();
+        if (input > 0.0f && spriteRendererRef.flipX) {
+            spriteRendererRef.flipX = false;
+            management.SendSpriteOrientationServerRpc(spriteRendererRef.flipX, Netcode.GetClientID());
+        }
+        else if (input < 0.0f && !spriteRendererRef.flipX) {
+            spriteRendererRef.flipX = true;
+            management.SendSpriteOrientationServerRpc(spriteRendererRef.flipX, Netcode.GetClientID());
+        }
+    }
+    public void ProcessSpriteOrientationRpc(bool flipX) {
+        spriteRendererRef.flipX = flipX;
+    }
 
     public void ProcessMovementInputRpc(float input) {
 
@@ -171,12 +216,12 @@ public class Player : Entity {
             movingLeft = false;
             movingRight = true;
         }
-
     }
 
 
     public PlayerID GetPlayerID() { return currentPlayerID; }
     public void SetPlayerID(PlayerID id) { currentPlayerID = id; }
+    public void SetMainHUDRef(MainHUD reference) { mainHUDRef = reference; }
     public float GetCurrentHealth() { return currentHealth; }
     public float GetCurrentHealthPercentage() { return currentHealth / healthCap; }
 
