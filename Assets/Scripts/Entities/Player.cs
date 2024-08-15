@@ -8,14 +8,156 @@ using static MyUtility.Utility;
 
 public class Player : Entity {
 
+    [Header("Health")]
+    [Space(10)]
     [SerializeField] private float healthCap = 100.0f;
     [SerializeField] private float startingHealth = 20.0f;
+
+    [Header("Movement")]
+    [Space(10)]
     [SerializeField] private float accelerationSpeed = 1.0f;
     [SerializeField] private float decelerationSpeed = 1.0f;
     [SerializeField] private float maxSpeed = 100.0f;
 
+    [Header("Jump")]
+    [Space(10)]
+    [SerializeField] private LayerMask groundLayerMask;
+    [SerializeField] private float jumpMaximumHeight = 400.0f;
+    [SerializeField] private float groundedGravity = 40.0f;
+    [SerializeField] private float raisingGravity = 350.0f;
+    [SerializeField] private float fallingGravity = 600.0f;
+    [SerializeField] private float coyoteTimeDuration = 0.1f;
+    //[SerializeField][Range(0.0f, 1.0f)] private float releaseRetainedVelocity = 0.85f;
+    //[SerializeField][Range(0.0f, 1.0f)] private float landingRetainedVelocity = 1.0f;
+    //[SerializeField] private float jumpBufferDuration = 0.3f;
+
+    private float coyoteTimeTimer = 0.0f;
+    private float jumpBufferTimer = 0.0f;
+
+     public bool isGrounded = true;
+
+    //CheckCoyoteTime();
+    //CheckJumpCommandBuffer();
+    //CheckJumpCommand();
+
+    //private void Jump() {
+    //    //For more consistent jump
+    //    //It is not 100% accurate unit wise but is close enough
+    //    //Raising gravity will effect it slighty.
+    //    //For each increase in raisingGravity by 10.0f, reached height is increased by around 1 each time.
+    //
+    //    rigidbodyComp.gravityScale = raisingGravity; //Repeated here since it is required for the below calculation
+    //    float jumpForce = Mathf.Sqrt(jumpMaximumHeight * -2 * (Physics2D.gravity.y * rigidbodyComp.gravityScale));
+    //    rigidbodyComp.AddForce(new Vector2(0.0f, jumpForce), ForceMode2D.Impulse);
+    //    animatorComp.SetTrigger("isJumping");
+    //}
+
+    //private void CheckJumpCommand() {
+    //    if (!canInterruptMelee && performingMeleeCommand)
+    //        return;
+
+    //    if (!canInterruptShooting && performingShootCommand)
+    //        return;
 
 
+    //    if (jumpBufferTimer > 0.0f && isGrounded && !isCrouched) {
+    //        jumpBufferTimer = 0.0f;
+    //        Jump();
+    //    }
+    //    if (inputY != -1 && !isGrounded && rigidbodyComp.velocity.y > 0.0f) {
+    //        if (releaseRetainedVelocity <= 0.0f)
+    //            rigidbodyComp.velocity = new Vector2(rigidbodyComp.velocity.x, -1.0f);
+    //        else
+    //            rigidbodyComp.velocity = new Vector2(rigidbodyComp.velocity.x, rigidbodyComp.velocity.y * releaseRetainedVelocity);
+
+    //        rigidbodyComp.gravityScale = fallingGravity;
+    //    }
+    //}
+    //private void CheckJumpCommandBuffer() {
+    //    if (jumpBufferTimer > 0.0f) {
+    //        jumpBufferTimer -= Time.deltaTime;
+    //        if (jumpBufferTimer <= 0.0f)
+    //            jumpBufferTimer = 0.0f;
+    //    }
+    //    if (Input.GetKeyDown(KeyCode.UpArrow)) {
+    //        jumpBufferTimer = jumpBufferDuration;
+    //    }
+    //}
+
+    //private void CheckVerticalVelocity() {
+    //    if (rigidbodyComp.velocity.y < 0.0f) {
+    //        if (coyoteTimeTimer == 0.0f && isGrounded && !isDead)
+    //            coyoteTimeTimer = coyoteTimeDuration;
+
+    //        if (isDead && !isGrounded) {
+    //            rigidbodyComp.gravityScale = airDeathFallingGravity;
+    //        }
+
+    //        if (performingMeleeCommand)
+    //            StopMeleeCommand();
+    //        if (performingShootCommand)
+    //            StopShootCommand();
+    //    }
+    //    else if (rigidbodyComp.velocity.y > 0.0f) {
+    //        isGrounded = false;
+    //        animatorComp.SetBool("isGrounded", false);
+    //        animatorComp.SetBool("isFalling", false);
+    //        coyoteTimeTimer = 0.0f;
+    //        rigidbodyComp.gravityScale = raisingGravity;
+
+    //        Vector3 gunshotLightPosition = gunshotLight.transform.localPosition;
+    //        gunshotLightPosition.y = gunshotLightInAirHeight;
+    //        gunshotLight.transform.localPosition = gunshotLightPosition;
+
+    //        Vector3 bulletCasingPosition = bulletCasing.transform.localPosition;
+    //        bulletCasingPosition.y = bulletCasingInAirHeight;
+    //        bulletCasing.transform.localPosition = bulletCasingPosition;
+    //    }
+    //    else if (rigidbodyComp.velocity.y == 0.0f) {
+    //        if (!isDead) {
+    //            rigidbodyComp.gravityScale = groundedGravity;
+    //            if (!isGrounded) {
+    //                pushbackActive = false;
+    //                rigidbodyComp.velocity = new Vector2(velocityLastFrame.x * landingRetainedVelocity, 0.0f);
+
+    //                QueueCameraShake(landingCameraShake);
+    //                ApplyHitStop(landingHitStopDuration);
+    //            }
+    //        }
+
+    //        isGrounded = true;
+    //        animatorComp.SetBool("isGrounded", true);
+
+    //        coyoteTimeTimer = 0.0f;
+
+
+    //        Vector3 gunshotLightPosition = gunshotLight.transform.localPosition;
+    //        gunshotLightPosition.y = gunshotLightGroundedHeight;
+    //        gunshotLight.transform.localPosition = gunshotLightPosition;
+
+    //        Vector3 bulletCasingPosition = bulletCasing.transform.localPosition;
+    //        if (isMoving && isGrounded)
+    //            bulletCasingPosition.y = bulletCasingRunningHeight;
+    //        else
+    //            bulletCasingPosition.y = bulletCasingGroundedHeight;
+    //        bulletCasing.transform.localPosition = bulletCasingPosition;
+    //    }
+
+    //    velocityLastFrame = rigidbodyComp.velocity;
+    //}
+    //private void CheckCoyoteTime() {
+    //    if (coyoteTimeTimer > 0.0f) {
+    //        coyoteTimeTimer -= Time.deltaTime;
+    //        if (coyoteTimeTimer <= 0.0f) {
+    //            coyoteTimeTimer = 0.0f;
+    //            isGrounded = false;
+
+    //            rigidbodyComp.gravityScale = fallingGravity;
+    //            animatorComp.SetBool("isFalling", true);
+    //            animatorComp.SetBool("isGrounded", false);
+    //        }
+    //    }
+    //}
 
     public enum PlayerID {
         NONE = 0,
@@ -66,6 +208,7 @@ public class Player : Entity {
         if (networkObjectRef.IsOwner)
             CheckInput();
 
+        UpdateGroundedCheck();
     }
     public override void FixedTick() {
         if (!initialized || !active)
@@ -142,6 +285,10 @@ public class Player : Entity {
     private void CheckInput() {
         bool left = Input.GetKey(KeyCode.A);
         bool right = Input.GetKey(KeyCode.D);
+        bool jump = Input.GetKey (KeyCode.W);
+
+        if (jump && isGrounded)
+            Jump();
 
         if (left && right)
             inputDirection.x = 0.0f;
@@ -171,6 +318,17 @@ public class Player : Entity {
             else if (inputDirection.x == 0.0f && animatorRef.GetBool("isMoving"))
                 gameInstanceRef.GetRPCManagement().NotifyMovementAnimationStateServerRpc(false);
         }
+    }
+    private void Jump() {
+        //For more consistent jump
+        //It is not 100% accurate unit wise but is close enough
+        //Raising gravity will effect it slighty.
+        //For each increase in raisingGravity by 10.0f, reached height is increased by around 1 each time.
+
+        rigidbody2DRef.gravityScale = raisingGravity; //Repeated here since it is required for the below calculation
+        float jumpForce = Mathf.Sqrt(jumpMaximumHeight * -2 * (Physics2D.gravity.y * rigidbody2DRef.gravityScale));
+        rigidbody2DRef.AddForce(new Vector2(0.0f, jumpForce), ForceMode2D.Impulse);
+        //animatorComp.SetTrigger("isJumping");
     }
 
 
@@ -204,6 +362,23 @@ public class Player : Entity {
             management.UpdateSpriteOrientationServerRpc(spriteRendererRef.flipX, Netcode.GetClientID());
         }
     }
+    private void UpdateGroundedCheck() {
+
+        Vector2 position = transform.position;
+        position.y += 0.1f;
+        RaycastHit2D results 
+            = Physics2D.BoxCast(position, boxCollider2DRef.size, 0.0f, Vector2.down, 0.2f, groundLayerMask.value);
+
+        if (results) {
+            isGrounded = true;
+
+        }
+        else {
+            isGrounded = false;
+
+        }
+    }
+
     public void ProcessSpriteOrientationRpc(bool flipX) {
         spriteRendererRef.flipX = flipX;
     }
@@ -223,8 +398,6 @@ public class Player : Entity {
             movingRight = true;
         }
     }
-
-
     public void ProcessPlayerHealthRpc(float amount) {
         currentHealth = amount;
         //Check death?
