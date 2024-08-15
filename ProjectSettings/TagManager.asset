@@ -18,6 +18,7 @@ TagManager:
   - MainHUD
   - Player1
   - Player2
+  - PickupSpawner
   layers:
   - Default
   - TransparentFX

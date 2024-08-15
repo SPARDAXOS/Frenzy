@@ -234,11 +234,11 @@ public class MainHUD : Entity {
 
 
     //PlayerHUDElements
-    public void UpdatePlayerHealth(float amount, Player.PlayerID id) {
+    public void UpdatePlayerHealth(float percentage, Player.PlayerID id) {
         if (id == Player.PlayerID.NONE)
             return;
 
-        float value = amount;
+        float value = percentage;
         if (value < 0.0f)
             value *= -1;
 

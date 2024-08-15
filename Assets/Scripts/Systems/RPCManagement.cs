@@ -64,6 +64,10 @@ public class RPCManagement : NetworkedEntity {
     public void CalculatePlayer2PositionServerRpc(float input) {
         gameInstanceRef.ProcessPlayer2MovementRpc(input);
     }
+    [ServerRpc(RequireOwnership = false)]
+    public void NotifyPlayer2JumpCommandServerRpc() {
+        gameInstanceRef.ProcessPlayer2JumpCommandRpc();
+    }
 
     //Animations
     [ServerRpc(RequireOwnership = false)]
@@ -75,29 +79,29 @@ public class RPCManagement : NetworkedEntity {
 
     //HUD
     [ServerRpc(RequireOwnership = false)]
-    public void UpdatePlayerHealthServerRpc(float amount, ulong senderID) {
+    public void UpdatePlayerHealthServerRpc(float amount, Player.PlayerID playerID, ulong senderID) {
         ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
         if (clientRpcParams == null)
             return;
 
-        RelayPlayerHealthClientRpc(amount, (ClientRpcParams)clientRpcParams);
+        RelayPlayerHealthClientRpc(amount, playerID, (ClientRpcParams)clientRpcParams);
     }
     [ClientRpc]
-    public void RelayPlayerHealthClientRpc(float amount, ClientRpcParams clientRpcParameters = default) {
-        gameInstanceRef.ProcessPlayerHealthRpc(amount);
+    public void RelayPlayerHealthClientRpc(float amount, Player.PlayerID playerID, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProcessPlayerHealthRpc(amount, playerID);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void UpdatePlayerMoneyServerRpc(int amount, ulong senderID) {
+    public void UpdatePlayerMoneyServerRpc(int amount, Player.PlayerID playerID, ulong senderID) {
         ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
         if (clientRpcParams == null)
             return;
 
-        RelayPlayerMoneyClientRpc(amount, (ClientRpcParams)clientRpcParams);
+        RelayPlayerMoneyClientRpc(amount, playerID, (ClientRpcParams)clientRpcParams);
     }
     [ClientRpc]
-    public void RelayPlayerMoneyClientRpc(int amount, ClientRpcParams clientRpcParameters = default) {
-        gameInstanceRef.ProcessPlayerMoneyRpc(amount);
+    public void RelayPlayerMoneyClientRpc(int amount, Player.PlayerID playerID, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProcessPlayerMoneyRpc(amount, playerID);
     }
 
 
@@ -116,6 +120,36 @@ public class RPCManagement : NetworkedEntity {
         gameInstanceRef.ProcessPlayerSpriteOrientation(flipX);
     }
 
+
+    //Pickups
+    [ServerRpc(RequireOwnership = false)]
+    public void UpdatePickupSpawnServerRpc(int pickupID, ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
+
+        RelayPickupSpawnClientRpc(pickupID, (ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelayPickupSpawnClientRpc(int pickupID, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProcessPickupSpawnRpc(pickupID);
+    }
+
+  
+
+    //Shooting
+    [ServerRpc(RequireOwnership = false)]
+    public void NotifyShootRequestServerRpc(ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
+
+        RelayShootRequestClientRpc((ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelayShootRequestClientRpc(ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProcessShootRequest();
+    }
 
 
     //Chat

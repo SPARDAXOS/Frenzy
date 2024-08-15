@@ -8,6 +8,7 @@ using Unity.Services.Authentication;
 using UnityEngine.EventSystems;
 using Unity.Netcode;
 using Unity.VisualScripting;
+using static Player;
 
 public class GameInstance : MonoBehaviour {
 
@@ -552,7 +553,7 @@ public class GameInstance : MonoBehaviour {
 
 
 
-        if (netcodeScript.IsHost()) {
+        if (Netcode.IsHost()) {
 
             Level currentLoadedLevel = levelManagementScript.GetCurrentLoadedLevel();
             Vector3 player1SpawnPosition = currentLoadedLevel.GetPlayer1SpawnPoint();
@@ -619,6 +620,8 @@ public class GameInstance : MonoBehaviour {
             player1Script.FixedTick();
         if (player2Script)
             player2Script.FixedTick();
+
+
     }
 
 
@@ -741,9 +744,9 @@ public class GameInstance : MonoBehaviour {
             player1.name = "NetworkedPlayer_1";
             player1NetworkObject = player1.GetComponent<NetworkObject>();
             player1Script = player1.GetComponent<Player>();
-            player1Script.Initialize(this);
             player1Script.SetPlayerID(id);
             player1Script.SetMainHUDRef(mainHUDScript);
+            player1Script.Initialize(this);
             player1Script.SetupStartingState();
             //player1Script.SetNetworkedEntityState(false);
         }
@@ -752,9 +755,9 @@ public class GameInstance : MonoBehaviour {
             player2.name = "NetworkedPlayer_2";
             player2NetworkObject = player2.GetComponent<NetworkObject>();
             player2Script = player2.GetComponent<Player>();
-            player2Script.Initialize(this);
             player2Script.SetPlayerID(id);
             player2Script.SetMainHUDRef(mainHUDScript);
+            player2Script.Initialize(this);
             player2Script.SetupStartingState();
             //player2Script.SetNetworkedEntityState(false);
         }
@@ -763,30 +766,52 @@ public class GameInstance : MonoBehaviour {
         if (player2Script)
             player2Script.ProcessMovementInputRpc(input);
     }
+    public void ProcessPlayer2JumpCommandRpc() {
+        if (player2Script)
+            player2Script.ProcessJumpInputRpc();
+    }
     public void ProcessPlayer2MovementAnimationState(bool state) {
         if (player2Script)
             player2Script.SetMovementAnimationState(state);
     }
+    public void ProcessShootRequest() {
+        if (Netcode.IsHost()) {
+            if (player2Script)
+                player2Script.ShootProjectile(false);
+        }
+        else {
+            if (player1Script)
+                player1Script.ShootProjectile(true);
+        }
+    }
     public void ProcessReceivedChatMessage(string message) {
         mainHUDScript.AddReceivedChatMessage(message);
     }
+    public void ProcessPickupSpawnRpc(int pickupID) {
+        var loadedLevel = levelManagementScript.GetCurrentLoadedLevel();
+        if (!loadedLevel)
+            return;
+
+        loadedLevel.ProcessPickupSpawnRpc(pickupID);
+    }
+
     public void ProcessPlayerSpriteOrientation(bool flipX) {
-        if (netcodeScript.IsHost())
+        if (Netcode.IsHost())
             player2Script.ProcessSpriteOrientationRpc(flipX);
         else
             player1Script.ProcessSpriteOrientationRpc(flipX);
     }
-    public void ProcessPlayerHealthRpc(float amount) {
-        if (netcodeScript.IsHost())
-            mainHUDScript.UpdatePlayerHealth(amount, Player.PlayerID.PLAYER_2);
-        else
-            mainHUDScript.UpdatePlayerHealth(amount, Player.PlayerID.PLAYER_1);
+    public void ProcessPlayerHealthRpc(float amount, Player.PlayerID playerID) {
+        if (Netcode.IsHost())
+            return;
+
+        mainHUDScript.UpdatePlayerHealth(amount, playerID);
     }
-    public void ProcessPlayerMoneyRpc(int amount) {
-        if (netcodeScript.IsHost())
-            mainHUDScript.UpdatePlayerMoneyCount(amount, Player.PlayerID.PLAYER_2);
-        else
-            mainHUDScript.UpdatePlayerMoneyCount(amount, Player.PlayerID.PLAYER_1);
+    public void ProcessPlayerMoneyRpc(int amount, Player.PlayerID playerID) {
+        if (Netcode.IsHost())
+            return;
+
+        mainHUDScript.UpdatePlayerMoneyCount(amount, playerID);
     }
 
 
