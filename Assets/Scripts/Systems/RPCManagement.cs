@@ -42,13 +42,57 @@ public class RPCManagement : NetworkedEntity {
 
 
 
-    [ServerRpc (RequireOwnership = true)]
+    //Game State
+    [ServerRpc (RequireOwnership = false)]
     public void ConfirmConnectionServerRpc() {
         RelayConnectionConfirmationClientRpc();
     }
     [ClientRpc]
     public void RelayConnectionConfirmationClientRpc() {
         gameInstanceRef.StartGame();
+    }
+
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestGameRestartServerRpc(ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
+
+        RelayGameRestartRequestClientRpc((ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelayGameRestartRequestClientRpc(ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.RestartGame();
+    }
+
+
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RestartGameServerRpc(ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
+
+        RelayRestartGameClientRpc((ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelayRestartGameClientRpc(ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.RestartGame();
+    }
+
+
+    [ServerRpc(RequireOwnership = false)]
+    public void UpdateMatchResultsServerRpc(MatchResults results, ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
+
+        RelayMatchResultsClientRpc(results, (ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelayMatchResultsClientRpc(MatchResults results, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProcessMatchResults(results);
     }
 
 
@@ -67,6 +111,20 @@ public class RPCManagement : NetworkedEntity {
     [ServerRpc(RequireOwnership = false)]
     public void NotifyPlayer2JumpCommandServerRpc() {
         gameInstanceRef.ProcessPlayer2JumpCommandRpc();
+    }
+
+    //Death
+    [ServerRpc(RequireOwnership = false)]
+    public void UpdatePlayerDeathServerRpc(Player.PlayerID playerID, ulong senderID) {
+        ClientRpcParams? clientRpcParams = CreateClientRpcParams(senderID);
+        if (clientRpcParams == null)
+            return;
+
+        RelayPlayerDeathClientRpc(playerID, (ClientRpcParams)clientRpcParams);
+    }
+    [ClientRpc]
+    public void RelayPlayerDeathClientRpc(Player.PlayerID playerID, ClientRpcParams clientRpcParameters = default) {
+        gameInstanceRef.ProcessPlayerDeathRpc(playerID);
     }
 
     //Animations

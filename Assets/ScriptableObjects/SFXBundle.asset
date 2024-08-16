@@ -12,4 +12,58 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc5da1e2b71635e4c8991da119a93bf7, type: 3}
   m_Name: SFXBundle
   m_EditorClassIdentifier: 
-  entries: []
+  entries:
+  - key: Shoot
+    clip:
+      m_AssetGUID: 0e73b62bee53564459b5067b860b73b7
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 0
+    volume: 0.75
+    minPitch: 1
+    maxPitch: 1.5
+  - key: MoneyCollect
+    clip:
+      m_AssetGUID: 7c47020e60ed426408ffc5393a5f8a85
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 0
+    volume: 0.5
+    minPitch: 1
+    maxPitch: 1.5
+  - key: Respawn
+    clip:
+      m_AssetGUID: 2f5066c5991938846ae3370c36517a0d
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 0
+    volume: 0.8
+    minPitch: 1
+    maxPitch: 1.5
+  - key: Death
+    clip:
+      m_AssetGUID: a0d16a11195a2a84ba056f4c32e0c4c5
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 0
+    volume: 1
+    minPitch: 1
+    maxPitch: 1.2
+  - key: ButtonConfirm
+    clip:
+      m_AssetGUID: d5fa7f17bcfd1eb448e0e7d4a4368f19
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 0
+    volume: 0.8
+    minPitch: 0.8
+    maxPitch: 1.2
+  - key: ButtonCancel
+    clip:
+      m_AssetGUID: 92d793f123ffca342a357174ffa8d0bf
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 1
+    volume: 0.8
+    minPitch: 0.8
+    maxPitch: 1.2

@@ -26,9 +26,9 @@ TagManager:
   - Ground
   - Water
   - UI
-  - 
-  - 
-  - 
+  - Projectile
+  - Pickup
+  - Player
   - 
   - 
   - 

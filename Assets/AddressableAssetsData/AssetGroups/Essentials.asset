@@ -119,6 +119,51 @@ MonoBehaviour:
     m_SerializedLabels:
     - Essential
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 503b3ca4712b83f4a8748c8d5dcfb63b
+    m_Address: Assets/Sounds/SFX/ShootSFX.wav
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 717bd17a0ff003d44b50d3bc969e04b6
+    m_Address: Assets/Sounds/Tracks/GameplayTrack.wav
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0e73b62bee53564459b5067b860b73b7
+    m_Address: Assets/Sounds/SFX/Shoot2.wav
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7c47020e60ed426408ffc5393a5f8a85
+    m_Address: Assets/Sounds/SFX/MoneyCollect.wav
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2f5066c5991938846ae3370c36517a0d
+    m_Address: Assets/Sounds/SFX/Respawn.wav
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a0d16a11195a2a84ba056f4c32e0c4c5
+    m_Address: Assets/Sounds/SFX/DeathSFX.wav
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 92d793f123ffca342a357174ffa8d0bf
+    m_Address: Assets/Sounds/SFX/ButtonCancel.wav
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d5fa7f17bcfd1eb448e0e7d4a4368f19
+    m_Address: Assets/Sounds/SFX/ButtonConfirm.wav
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a7f8bd072d5f2dd489aa64bb839f5b7f
+    m_Address: Assets/Sounds/Tracks/MainMenuTrack.wav
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: da51f17292af1bf42a5a2d71c923b64c, type: 2}
   m_SchemaSet:

@@ -12,4 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad01b60f3e0d54747b396922fe697ed2, type: 3}
   m_Name: TracksBundle
   m_EditorClassIdentifier: 
-  entries: []
+  entries:
+  - key: GameplayTrack
+    clip:
+      m_AssetGUID: 717bd17a0ff003d44b50d3bc969e04b6
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 0
+    volume: 0.7
+    pitch: 1
+  - key: MainMenuTrack
+    clip:
+      m_AssetGUID: a7f8bd072d5f2dd489aa64bb839f5b7f
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_EditorAssetChanged: 0
+    volume: 0.7
+    pitch: 1

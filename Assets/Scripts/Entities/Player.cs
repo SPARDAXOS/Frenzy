@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Rendering.UI;
@@ -9,15 +10,28 @@ using static MyUtility.Utility;
 
 public class Player : Entity {
 
+    //QuickHack
+    public static int PLAYER_1_MONEYDROP_ID = -2;
+    public static int PLAYER_2_MONEYDROP_ID = -3;
+
     [Header("Health")]
     [Space(10)]
     [SerializeField] private float healthCap = 100.0f;
     [SerializeField] private float startingHealth = 100.0f;
+    [SerializeField] private float respawnDelay = 5.0f;
+
+    [Header("Drop")]
+    [Space(10)]
+    [SerializeField] private GameObject moneyDropPrefab;
+    [SerializeField] private Vector2 moneyDropOffset = new Vector2(5.0f, 2.0f);
 
     [Header("Shooting")]
     [Space(10)]
     [SerializeField] private GameObject projectilePoolPrefab = null;
+    [SerializeField] private float fireRateDelay = 0.2f;
+
     [SerializeField] private Vector2 bulletOffset = new Vector2(5.0f, 2.0f);
+    [SerializeField] private float bulletOffsetYDeviation = 0.1f;
 
     [Header("Movement")]
     [Space(10)]
@@ -31,74 +45,14 @@ public class Player : Entity {
     [SerializeField] private float jumpHeight = 5.0f;
     [SerializeField] private float jumpGravityPower = 50.0f;
     [SerializeField] private float jumpBufferDuration = 0.3f;
-    [SerializeField] [Range(0.0f, 1.0f)] private float jumpCancelPercentage = 0.6f;
 
-    public float jumpBufferTimer = 0.0f;
+    private float jumpBufferTimer = 0.0f;
+    private float respawnTimer = 0.0f;
+    private float fireRateTimer = 0.0f;
 
+    public bool isDead = false;
     public bool isGrounded = true;
 
-
-    //private void CheckVerticalVelocity() {
-    //    if (rigidbodyComp.velocity.y < 0.0f) {
-    //        if (coyoteTimeTimer == 0.0f && isGrounded && !isDead)
-    //            coyoteTimeTimer = coyoteTimeDuration;
-
-    //        if (isDead && !isGrounded) {
-    //            rigidbodyComp.gravityScale = airDeathFallingGravity;
-    //        }
-
-    //        if (performingMeleeCommand)
-    //            StopMeleeCommand();
-    //        if (performingShootCommand)
-    //            StopShootCommand();
-    //    }
-    //    else if (rigidbodyComp.velocity.y > 0.0f) {
-    //        isGrounded = false;
-    //        animatorComp.SetBool("isGrounded", false);
-    //        animatorComp.SetBool("isFalling", false);
-    //        coyoteTimeTimer = 0.0f;
-    //        rigidbodyComp.gravityScale = raisingGravity;
-
-    //        Vector3 gunshotLightPosition = gunshotLight.transform.localPosition;
-    //        gunshotLightPosition.y = gunshotLightInAirHeight;
-    //        gunshotLight.transform.localPosition = gunshotLightPosition;
-
-    //        Vector3 bulletCasingPosition = bulletCasing.transform.localPosition;
-    //        bulletCasingPosition.y = bulletCasingInAirHeight;
-    //        bulletCasing.transform.localPosition = bulletCasingPosition;
-    //    }
-    //    else if (rigidbodyComp.velocity.y == 0.0f) {
-    //        if (!isDead) {
-    //            rigidbodyComp.gravityScale = groundedGravity;
-    //            if (!isGrounded) {
-    //                pushbackActive = false;
-    //                rigidbodyComp.velocity = new Vector2(velocityLastFrame.x * landingRetainedVelocity, 0.0f);
-
-    //                QueueCameraShake(landingCameraShake);
-    //                ApplyHitStop(landingHitStopDuration);
-    //            }
-    //        }
-
-    //        isGrounded = true;
-    //        animatorComp.SetBool("isGrounded", true);
-
-    //        coyoteTimeTimer = 0.0f;
-
-
-    //        Vector3 gunshotLightPosition = gunshotLight.transform.localPosition;
-    //        gunshotLightPosition.y = gunshotLightGroundedHeight;
-    //        gunshotLight.transform.localPosition = gunshotLightPosition;
-
-    //        Vector3 bulletCasingPosition = bulletCasing.transform.localPosition;
-    //        if (isMoving && isGrounded)
-    //            bulletCasingPosition.y = bulletCasingRunningHeight;
-    //        else
-    //            bulletCasingPosition.y = bulletCasingGroundedHeight;
-    //        bulletCasing.transform.localPosition = bulletCasingPosition;
-    //    }
-
-    //    velocityLastFrame = rigidbodyComp.velocity;
-    //}
 
 
     public enum PlayerID {
@@ -115,8 +69,14 @@ public class Player : Entity {
     private Rigidbody2D rigidbody2DRef;
     private BoxCollider2D boxCollider2DRef;
     private NetworkObject networkObjectRef;
-    private MainHUD mainHUDRef;
+
     private GameObject projectilesPoolRef;
+    private GameObject playerGUIRef;
+    private GameObject moneydrop;
+
+    private MoneyPickup moneyDropScript;
+    private TMP_Text respawnTextComp;
+    private MainHUD mainHUDRef;
     private ProjectilePool projectilesPoolScript;
 
     public float currentHealth = 0.0f;
@@ -141,6 +101,8 @@ public class Player : Entity {
         boxCollider2DRef = GetComponent<BoxCollider2D>();
         networkObjectRef = GetComponent<NetworkObject>();
 
+        SetupReferences();
+        CreateMoneyDrop();
         SetupProjectilesPool();
 
         gameInstanceRef = game;
@@ -149,9 +111,17 @@ public class Player : Entity {
     public override void Tick() {
         if (!initialized || !active)
             return;
+
         if (currentPlayerID == PlayerID.NONE)
             return;
 
+        if (isDead) {
+            UpdateRespawnTimer();
+            return;
+        }
+
+
+        UpdateFireRateTimer();
         if (networkObjectRef.IsOwner)
             CheckInput();
 
@@ -162,7 +132,11 @@ public class Player : Entity {
     public override void FixedTick() {
         if (!initialized || !active)
             return;
+
         if (currentPlayerID == PlayerID.NONE)
+            return;
+
+        if (isDead)
             return;
 
 
@@ -181,6 +155,13 @@ public class Player : Entity {
 
         currentHealth = startingHealth;
         currentMoney = 0;
+        isDead = false;
+        animatorRef.SetBool("isDead", false);
+        respawnTextComp.gameObject.SetActive(false);
+        fireRateTimer = 0.0f;
+        //Hide Timer, Update anim, send rpc for anim
+
+        rigidbody2DRef.constraints = RigidbodyConstraints2D.FreezeRotation;
 
         //To func?
         mainHUDRef.UpdatePlayerHealth(GetCurrentHealthPercentage(), currentPlayerID);
@@ -212,7 +193,34 @@ public class Player : Entity {
         Validate(projectilesPoolScript, "Failed to find ProjectilesPool component reference!", ValidationLevel.ERROR, true);
         projectilesPoolScript.Setup(currentPlayerID);
     }
+    private void SetupReferences() {
 
+        //Respawn Text
+        Transform playerGUITransform = transform.Find("PlayerGUI");
+        Validate(playerGUITransform, "Failed to find PlayerGUI reference!", ValidationLevel.ERROR, true);
+        playerGUIRef = playerGUITransform.gameObject;
+
+        Transform respawnTextTransform = playerGUITransform.Find("RespawnText");
+        Validate(respawnTextTransform, "Failed to find RespawnText reference!", ValidationLevel.ERROR, true);
+        respawnTextComp = respawnTextTransform.GetComponent<TMP_Text>();
+        Validate(respawnTextComp, "Failed to find respawnTextComp reference!", ValidationLevel.ERROR, true);
+
+        respawnTextComp.gameObject.SetActive(false);
+    }
+    private void CreateMoneyDrop() {
+        Validate(moneyDropPrefab, "Failed to find moneyDropPrefab reference!", ValidationLevel.ERROR, true);
+        
+        moneydrop = Instantiate(moneyDropPrefab);
+        moneydrop.name = gameObject.name + "_MoneyDrop";
+        moneyDropScript = moneydrop.GetComponent<MoneyPickup>();
+        moneyDropScript.SetShouldRespawn(false);
+        if (currentPlayerID == PlayerID.PLAYER_1)
+            moneyDropScript.SetPickupID(PLAYER_1_MONEYDROP_ID);
+        else if (currentPlayerID == PlayerID.PLAYER_2)
+            moneyDropScript.SetPickupID(PLAYER_2_MONEYDROP_ID);
+
+        moneyDropScript.SetState(false);
+    }
 
 
     private void Accelerate() {
@@ -239,7 +247,7 @@ public class Player : Entity {
         bool left = Input.GetKey(KeyCode.A);
         bool right = Input.GetKey(KeyCode.D);
         bool jump = Input.GetKeyDown(KeyCode.W);
-        bool shoot = Input.GetKeyDown(KeyCode.Space);
+        bool shoot = Input.GetKey(KeyCode.Space);
 
 
 
@@ -267,8 +275,8 @@ public class Player : Entity {
                 jumpBufferTimer = jumpBufferDuration;
 
             if (shoot && projectilesPoolScript) {
-                ShootProjectile(false);
-                gameInstanceRef.GetRPCManagement().NotifyShootRequestServerRpc(Netcode.GetClientID());
+                if (ShootProjectile(false))
+                    gameInstanceRef.GetRPCManagement().NotifyShootRequestServerRpc(Netcode.GetClientID());
             }
         }
         else if (Netcode.IsClient() && !Netcode.IsHost()) {
@@ -282,12 +290,15 @@ public class Player : Entity {
                 gameInstanceRef.GetRPCManagement().NotifyPlayer2JumpCommandServerRpc();
 
             if (shoot && projectilesPoolScript) {
-                ShootProjectile(true);
-                gameInstanceRef.GetRPCManagement().NotifyShootRequestServerRpc(Netcode.GetClientID());
+                if (ShootProjectile(true))
+                    gameInstanceRef.GetRPCManagement().NotifyShootRequestServerRpc(Netcode.GetClientID());
             }
         }
     }
-    public void ShootProjectile(bool consmeticOnly) {
+    public bool ShootProjectile(bool consmeticOnly) {
+        if (fireRateTimer > 0.0f)
+            return false;
+
         Vector2 shootingDirection = Vector2.zero;
         if (spriteRendererRef.flipX)
             shootingDirection.x = -1.0f;
@@ -296,13 +307,35 @@ public class Player : Entity {
 
         Vector2 shootingPosition = transform.position;
         shootingPosition.y += bulletOffset.y;
+        shootingPosition.y += UnityEngine.Random.Range(-bulletOffsetYDeviation, bulletOffsetYDeviation);
         shootingPosition.x += bulletOffset.x * shootingDirection.x;
 
         projectilesPoolScript.SpawnProjectile(shootingPosition, shootingDirection, consmeticOnly);
+        fireRateTimer = fireRateDelay;
+        gameInstanceRef.GetSoundSystem().PlaySFX("Shoot", true, gameObject);
+        return true;
+    }
+    public void SetMoneyDropState(bool state) {
+        moneyDropScript.SetState(state);
     }
 
+    private void UpdateRespawnTimer() {
+        respawnTimer -= Time.deltaTime;
+        if (respawnTimer <= 0.0f) {
+            respawnTimer = 0.0f;
+            gameInstanceRef.GetSoundSystem().PlaySFX("Respawn");
+            SetupStartingState();
+        }
 
-
+        respawnTextComp.text = Mathf.RoundToInt(respawnTimer).ToString();
+    }
+    private void UpdateFireRateTimer() {
+        if (fireRateTimer > 0.0f) {
+            fireRateTimer -= Time.deltaTime;
+            if (fireRateTimer <= 0.0f)
+                fireRateTimer = 0.0f;
+        }
+    }
     private void UpdateJumpBuffer() {
         if (jumpBufferTimer > 0.0f) {
             jumpBufferTimer -= Time.deltaTime;
@@ -363,7 +396,8 @@ public class Player : Entity {
         
         if (results) {
             isGrounded = true;
-
+            if (isDead)
+                rigidbody2DRef.constraints = RigidbodyConstraints2D.FreezePositionY;
         }
         else {
             isGrounded = false;
@@ -371,35 +405,79 @@ public class Player : Entity {
         }
     }
 
-
-    public void RegisterMoneyPickup(int pickupID, int amount) {
+    public void OverrideCurrentHealth(float percentage) { currentHealth = percentage * healthCap;}
+    public void OverrideCurrentMoney(int amount) { currentMoney = amount; }
+    public bool RegisterMoneyPickup(int pickupID, int amount) {
         if (!Netcode.IsHost())
-            return;
+            return false;
+        if (isDead)
+            return false;
 
         currentMoney += amount;
         mainHUDRef.UpdatePlayerMoneyCount(currentMoney, currentPlayerID);
         RPCManagement management = gameInstanceRef.GetRPCManagement();
         management.UpdatePlayerMoneyServerRpc(currentMoney, currentPlayerID, Netcode.GetClientID());
         management.UpdatePickupSpawnServerRpc(pickupID, Netcode.GetClientID());
+        gameInstanceRef.GetSoundSystem().PlaySFX("MoneyCollect", true, gameObject);
+
+        return true;
     }
     public void TakeDamage(float damage) {
+        if (isDead)
+            return;
+
         if (damage == 0.0f)
             return;
+
         float value = damage;
         if (value < 0.0f)
             value *= -1.0f;
 
-
+        RPCManagement management = gameInstanceRef.GetRPCManagement();
         currentHealth -= value;
         if (currentHealth <= 0.0f) {
             currentHealth = 0.0f;
-            //Death then delay to respawn. delay is set to 0 along with death bool at setupstartstate
-            //Send rpc to signal death.
+            management.UpdatePlayerDeathServerRpc(currentPlayerID, Netcode.GetClientID());
+            Kill();
         }
         mainHUDRef.UpdatePlayerHealth(GetCurrentHealthPercentage(), currentPlayerID);
 
-        RPCManagement management = gameInstanceRef.GetRPCManagement();
         management.UpdatePlayerHealthServerRpc(GetCurrentHealthPercentage(), currentPlayerID, Netcode.GetClientID());
+    }
+    public void Kill() {
+        if (isDead)
+            return;
+
+        isDead = true;
+        animatorRef.SetTrigger("deathTrigger");
+        animatorRef.SetBool("isDead", true);
+        respawnTimer = respawnDelay;
+        respawnTextComp.gameObject.SetActive(true);
+        respawnTextComp.text = Mathf.RoundToInt(respawnTimer).ToString();
+        gameInstanceRef.GetSoundSystem().PlaySFX("Death");
+
+        if (currentMoney > 0) {
+            Vector2 playerDirection = Vector2.zero;
+            if (spriteRendererRef.flipX)
+                playerDirection.x = -1.0f;
+            else
+                playerDirection.x = 1.0f;
+
+            Vector2 shootingPosition = transform.position;
+            shootingPosition.y += moneyDropOffset.y;
+            shootingPosition.x += moneyDropOffset.x * playerDirection.x;
+
+            moneyDropScript.transform.position = shootingPosition;
+            moneyDropScript.OverrideAmount(currentMoney);
+
+            moneyDropScript.SetState(true);
+        }
+
+
+        currentMoney = 0;
+        mainHUDRef.UpdatePlayerMoneyCount(currentMoney, currentPlayerID);
+        RPCManagement management = gameInstanceRef.GetRPCManagement();
+        management.UpdatePlayerMoneyServerRpc(currentMoney, currentPlayerID, Netcode.GetClientID());
     }
 
     public void ProcessSpriteOrientationRpc(bool flipX) {
@@ -424,25 +502,14 @@ public class Player : Entity {
     public void ProcessJumpInputRpc() {
         jumpBufferTimer = jumpBufferDuration;
     }
-    public void ProcessPlayerHealthRpc(float amount) {
-        currentHealth = amount;
-        //Check death?
-        //This is incorrect! Im getting player 2s health sent to me. Process should be broken in 2. Value to just update?? idk
-        if (currentPlayerID == PlayerID.PLAYER_1)
-            mainHUDRef.UpdatePlayerHealth(amount, Player.PlayerID.PLAYER_2);
-        else if (currentPlayerID == PlayerID.PLAYER_1)
-            mainHUDRef.UpdatePlayerHealth(amount, Player.PlayerID.PLAYER_1);
-    }
 
-    //Probably need to update not only the hud but the value here too!
-    //So the game instance calls this here which sets the value then updates the hud from here!
 
 
     public PlayerID GetPlayerID() { return currentPlayerID; }
     public void SetPlayerID(PlayerID id) { currentPlayerID = id; }
     public void SetMainHUDRef(MainHUD reference) { mainHUDRef = reference; }
+    public int GetCurrentMoney() { return currentMoney; }
     public float GetCurrentHealth() { return currentHealth; }
     public float GetCurrentHealthPercentage() { return currentHealth / healthCap; }
     public ProjectilePool GetProjectilePool() { return projectilesPoolScript; }
-
 }

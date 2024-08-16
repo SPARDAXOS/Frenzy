@@ -26,6 +26,11 @@ public class GameInstance : MonoBehaviour {
         PLAYING,
         PAUSED
     }
+    public enum MatchResults {
+        DRAW,
+        WIN,
+        LOSE
+    }
 
     [SerializeField] private bool initializeOnStartup = true;
     [SerializeField] private bool debugging = true;
@@ -94,9 +99,17 @@ public class GameInstance : MonoBehaviour {
     private MainCamera mainCameraScript;
     private Netcode netcodeScript;
     private MainMenu mainMenuScript;
+    private WinMenu winMenuScript;
+    private LoseMenu loseMenuScript;
     private ConnectionMenu connectionMenuScript;
     private FadeTransition fadeTransitionScript;
     private LoadingScreen loadingScreenScript;
+
+    //QuickHack
+    [SerializeField] private float matchDuration = 120.0f;
+
+    private float currentMatchTimer = 0;
+
 
 
 
@@ -221,11 +234,15 @@ public class GameInstance : MonoBehaviour {
             if (debugging)
                 Log("Started creating " + asset.name + " entity");
             loseMenu = Instantiate(asset);
+            loseMenuScript = loseMenu.GetComponent<LoseMenu>();
+            loseMenuScript.Initialize(this);
         }
         else if (asset.CompareTag("WinMenu")) {
             if (debugging)
                 Log("Started creating " + asset.name + " entity");
             winMenu = Instantiate(asset);
+            winMenuScript = winMenu.GetComponent<WinMenu>();
+            winMenuScript.Initialize(this);
         }
         else if (asset.CompareTag("MainHUD")) {
             if (debugging)
@@ -407,6 +424,7 @@ public class GameInstance : MonoBehaviour {
         initializationInProgress = false;
         currentApplicationStatus = ApplicationStatus.RUNNING;
         SetGameState(GameState.MAIN_MENU);
+
         if (debugging)
             Log("Game successfully initialized!");
     }
@@ -507,7 +525,7 @@ public class GameInstance : MonoBehaviour {
 
     public void PauseGame() {
         gamePaused = true;
-
+        //Put on the menu
     }
     public void UnpauseGame() {
         gamePaused = false;
@@ -522,7 +540,7 @@ public class GameInstance : MonoBehaviour {
         SetCursorState(true);
         mainMenu.SetActive(true);
         SetApplicationTargetFrameRate(menusFrameTarget);
-
+        soundSystemScript.PlayTrack("MainMenuTrack", true);
     }
     private void SetupConnectionMenuState() {
         currentGameState = GameState.CONNECTION_MENU;
@@ -542,16 +560,9 @@ public class GameInstance : MonoBehaviour {
 
         mainHUD.SetActive(true);
 
-        //if (player1Script) {
-        //    player1Script.SetupStartingState();
-        //    player1Script.SetNetworkedEntityState(true);
-        //}
-        //if (player2Script) { //Put all of these in the func where i get the refs for these to confirm it
-        //    player2Script.SetupStartingState();
-        //    player2Script.SetNetworkedEntityState(true);
-        //}
-
-
+        currentMatchTimer = matchDuration;
+        mainHUDScript.UpdateTimerText(Mathf.RoundToInt(matchDuration).ToString());
+        soundSystemScript.PlayTrack("GameplayTrack", true);
 
         if (Netcode.IsHost()) {
 
@@ -612,6 +623,7 @@ public class GameInstance : MonoBehaviour {
 
         mainHUDScript.Tick();
         levelManagementScript.Tick();
+        UpdateMatchTimer();
     }
     private void UpdateFixedPlayingState() {
         //mainCameraScript.FixedTick();
@@ -623,7 +635,16 @@ public class GameInstance : MonoBehaviour {
 
 
     }
+    private void UpdateMatchTimer() {
+        currentMatchTimer -= Time.deltaTime;
+        if (currentMatchTimer <= 0.0f) {
+            currentMatchTimer = 0.0f;
+            if (Netcode.IsHost())
+                EndGame();
+        }
 
+        mainHUDScript.UpdateTimerText(Mathf.RoundToInt(currentMatchTimer).ToString());
+    }
 
 
     public bool StartGame() {
@@ -650,10 +671,13 @@ public class GameInstance : MonoBehaviour {
         gameStarted = false;
         mainHUD.SetActive(false);
 
-        if (player1)
-            Destroy(player1);
-        if (player2)
-            Destroy(player2);
+        if (Netcode.IsHost()) {
+            if (player1)
+                Destroy(player1);
+            if (player2)
+                Destroy(player2);
+        }
+
 
         player1 = null;
         player2 = null;
@@ -661,15 +685,73 @@ public class GameInstance : MonoBehaviour {
         player2Script = null;
         player1NetworkObject = null;
         player2NetworkObject = null;
-        
+
 
         if (gamePaused)
             UnpauseGame();
 
-        //Should also do some clean ups that i forgot where.
-        //-I put a comment regarding it there tho.
-
+        netcodeScript.StopNetworking();
+        gameStarted = false;
         Transition(GameState.MAIN_MENU);
+    }
+    private void EndGame() {
+
+        int player1Money = player1Script.GetCurrentMoney();
+        int player2Money = player2Script.GetCurrentMoney();
+
+        SetCursorState(true);
+        mainHUD.SetActive(false);
+        soundSystemScript.PlayTrack("MainMenuTrack", true);
+
+        if (player1Money > player2Money) {
+            SetGameState(GameState.WIN_MENU);
+            rpcManagementScript.UpdateMatchResultsServerRpc(MatchResults.LOSE, Netcode.GetClientID());
+
+        }
+        else if (player1Money < player2Money) {
+            SetGameState(GameState.LOSE_MENU);
+            rpcManagementScript.UpdateMatchResultsServerRpc(MatchResults.WIN, Netcode.GetClientID());
+
+        }
+        else {
+            SetGameState(GameState.LOSE_MENU);
+            rpcManagementScript.UpdateMatchResultsServerRpc(MatchResults.LOSE, Netcode.GetClientID());
+        }
+
+        gameStarted = false;
+    }
+    public void RestartGame() {
+        if (gameStarted) {
+            Warning("Attempted to restart before gamestartd");
+            return;
+        }
+
+        if (Netcode.IsHost()) {
+            Log("Sent rpc to the client to restart");
+            rpcManagementScript.RestartGameServerRpc(Netcode.GetClientID());
+
+            Level currentLoadedLevel = levelManagementScript.GetCurrentLoadedLevel();
+            Vector3 player1SpawnPosition = currentLoadedLevel.GetPlayer1SpawnPoint();
+            Vector3 player2SpawnPosition = currentLoadedLevel.GetPlayer2SpawnPoint();
+            player1.transform.position = player1SpawnPosition;
+            player2.transform.position = player2SpawnPosition;
+        }
+
+
+
+        player1Script.SetupStartingState();
+        player2Script.SetupStartingState();
+
+        HideAllMenus();
+        SetCursorState(false);
+        mainHUD.SetActive(true);
+
+        currentMatchTimer = matchDuration;
+        mainHUDScript.UpdateTimerText(Mathf.RoundToInt(matchDuration).ToString());
+
+        gameStarted = true;
+        currentGameState = GameState.PLAYING;
+        soundSystemScript.PlayTrack("GameplayTrack", true);
     }
 
 
@@ -788,11 +870,20 @@ public class GameInstance : MonoBehaviour {
         mainHUDScript.AddReceivedChatMessage(message);
     }
     public void ProcessPickupSpawnRpc(int pickupID) {
-        var loadedLevel = levelManagementScript.GetCurrentLoadedLevel();
-        if (!loadedLevel)
+        if (pickupID == -1)
             return;
 
-        loadedLevel.ProcessPickupSpawnRpc(pickupID);
+        if (pickupID == PLAYER_1_MONEYDROP_ID)
+            player1Script.SetMoneyDropState(false);
+        else if (pickupID == PLAYER_2_MONEYDROP_ID)
+            player2Script.SetMoneyDropState(false);
+        else {
+            var loadedLevel = levelManagementScript.GetCurrentLoadedLevel();
+            if (!loadedLevel)
+                return;
+
+            loadedLevel.ProcessPickupSpawnRpc(pickupID);
+        }
     }
 
     public void ProcessPlayerSpriteOrientation(bool flipX) {
@@ -802,18 +893,51 @@ public class GameInstance : MonoBehaviour {
             player1Script.ProcessSpriteOrientationRpc(flipX);
     }
     public void ProcessPlayerHealthRpc(float amount, Player.PlayerID playerID) {
-        if (Netcode.IsHost())
+        if (Netcode.IsHost() || playerID == PlayerID.NONE)
             return;
 
         mainHUDScript.UpdatePlayerHealth(amount, playerID);
+        if (playerID == PlayerID.PLAYER_1)
+            player1Script.OverrideCurrentHealth(amount);
+        else if (playerID == PlayerID.PLAYER_2)
+            player2Script.OverrideCurrentHealth(amount);
     }
     public void ProcessPlayerMoneyRpc(int amount, Player.PlayerID playerID) {
-        if (Netcode.IsHost())
+        if (Netcode.IsHost() || playerID == PlayerID.NONE)
             return;
 
         mainHUDScript.UpdatePlayerMoneyCount(amount, playerID);
-    }
 
+        if (playerID == PlayerID.PLAYER_1)
+            player1Script.OverrideCurrentMoney(amount);
+        else if (playerID == PlayerID.PLAYER_2)
+            player2Script.OverrideCurrentMoney(amount);
+    }
+    public void ProcessPlayerDeathRpc(Player.PlayerID playerID) {
+        if (playerID == PlayerID.NONE)
+            return;
+
+        if (playerID == PlayerID.PLAYER_1) {
+            if (player1Script)
+                player1Script.Kill();
+        }
+        else if (playerID == PlayerID.PLAYER_2) {
+            if (player2Script)
+                player2Script.Kill();
+        }
+    }
+    public void ProcessMatchResults(MatchResults results) {
+        if (results == MatchResults.DRAW)
+            SetGameState(GameState.LOSE_MENU);
+        else if (results == MatchResults.WIN)
+            SetGameState(GameState.WIN_MENU);
+        else if (results == MatchResults.LOSE)
+            SetGameState(GameState.LOSE_MENU);
+
+        mainHUD.SetActive(false);
+        SetCursorState(true);
+        gameStarted = false;
+    }
 
 
 
@@ -821,8 +945,9 @@ public class GameInstance : MonoBehaviour {
     public Netcode GetNetcode() { return netcodeScript; }
     public RPCManagement GetRPCManagement() { return rpcManagementScript; }
     public LevelManagement GetLevelManagement() { return levelManagementScript; }
-    public Player GetPlayer() { return player1Script; }
-
+    public Player GetPlayer1() { return player1Script; }
+    public Player GetPlayer2() { return player2Script; }
+    public SoundSystem GetSoundSystem() { return soundSystemScript; }
 
 
 

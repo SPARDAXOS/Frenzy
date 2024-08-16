@@ -291,14 +291,17 @@ public class ConnectionMenu : Entity {
 
 
     public void SelectLocalConnectionModeButton() {
+        gameInstanceRef.GetSoundSystem().PlaySFX("ButtonConfirm");
         connectionSelectionType = ConnectionTypeSelection.LOCAL;
         SetMenuState(ConnectionMenuState.SELECT_MODE);
     }
     public void SelectGlobalConnectionModeButton() {
+        gameInstanceRef.GetSoundSystem().PlaySFX("ButtonConfirm");
         connectionSelectionType = ConnectionTypeSelection.GLOBAL;
         SetMenuState(ConnectionMenuState.SELECT_MODE);
     }
     public void ConfirmConnectionCode() {
+        gameInstanceRef.GetSoundSystem().PlaySFX("ButtonConfirm");
         Netcode netcodeRef = gameInstanceRef.GetNetcode();
         if (netcodeRef.IsDebugLogEnabled())
             Log("Attempting to connect to " + connectionCodeInputComp.text);
@@ -325,7 +328,7 @@ public class ConnectionMenu : Entity {
             connectionCodeTextComp.text = "Join Code: " + code;
     }
     public void HostButton() {
-
+        gameInstanceRef.GetSoundSystem().PlaySFX("ButtonConfirm");
         Netcode netcodeRef = gameInstanceRef.GetNetcode();
         if (connectionSelectionType == ConnectionTypeSelection.LOCAL)
             netcodeRef.StartLocalHost();
@@ -335,9 +338,11 @@ public class ConnectionMenu : Entity {
         SetMenuState(ConnectionMenuState.HOST);
     }
     public void ClientButton() {
+        gameInstanceRef.GetSoundSystem().PlaySFX("ButtonConfirm");
         SetMenuState(ConnectionMenuState.CLIENT);
     }
     public void BackButton() {
+        gameInstanceRef.GetSoundSystem().PlaySFX("ButtonCancel");
         if (currentMenuState == ConnectionMenuState.HOST) {
             gameInstanceRef.GetNetcode().StopNetworking();
             SetMenuState(ConnectionMenuState.SELECT_MODE);

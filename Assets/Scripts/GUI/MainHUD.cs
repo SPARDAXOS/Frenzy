@@ -25,6 +25,7 @@ public class MainHUD : Entity {
 
     private TMP_Text player1MoneyCountText;
     private TMP_Text player2MoneyCountText;
+    private TMP_Text timerText;
 
     private Image player1HealthBarImage;
     private Image player2HealthBarImage;
@@ -57,6 +58,7 @@ public class MainHUD : Entity {
         SetupPlayer1HUDReferences();
         SetupPlayer2HUDReferences();
         SetupChatHUDReferences();
+        SetupTimerText();
     }
 
     private void SetupChatHUDReferences() {
@@ -146,6 +148,12 @@ public class MainHUD : Entity {
         player2HealthBarImage = player2HealthBarFillTransform.GetComponent<Image>();
         Validate(player2HealthBarImage, "Failed to find player2HealthBarImage reference", ValidationLevel.ERROR, true);
     }
+    private void SetupTimerText() {
+        Transform timerTextTransform = transform.Find("TimerText");
+        Validate(timerTextTransform, "Failed to find TimerText reference.", ValidationLevel.ERROR, true);
+        timerText = timerTextTransform.GetComponent<TMP_Text>();
+        Validate(timerText, "Failed to find timerText reference.", ValidationLevel.ERROR, true);
+    }
     private void CheckInput() {
         if (Input.GetKeyDown(KeyCode.Return) && !chatOpened) {
             SetChatState(true, true, true);
@@ -231,6 +239,11 @@ public class MainHUD : Entity {
         ActivateChatPopup(chatMessageSentPopupDuration);
     }
 
+
+    //TimerText
+    public void UpdateTimerText(string value) {
+        timerText.text = value;
+    }
 
 
     //PlayerHUDElements
