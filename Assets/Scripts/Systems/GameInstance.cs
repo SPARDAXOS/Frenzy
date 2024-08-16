@@ -296,7 +296,7 @@ public class GameInstance : MonoBehaviour {
 
 #endif
     }
-    //This is kinda problamatic consedering i cant free the resources from here! cause its static
+
     public void QuitApplication(object message = null) {
         UnloadResources();
 #if UNITY_EDITOR
@@ -321,12 +321,11 @@ public class GameInstance : MonoBehaviour {
         //-Release resources
 
 
-        //ADD THE REST OF THE ENTITIES ! CLEAN UP
-
         //Needs reworking after networking solution
-        if (player1Script) //Temp
-            player1Script.CleanUp("Player cleaned up successfully!");
-
+        if (player1Script) 
+            player1Script.CleanUp("Player 1 cleaned up successfully!");
+        if (player2Script)
+            player2Script.CleanUp("Player 2 cleaned up successfully!");
 
         mainCameraScript.CleanUp("MainCamera cleaned up successfully!");
         soundSystemScript.CleanUp("SoundSystem cleaned up successfully!");
@@ -352,18 +351,8 @@ public class GameInstance : MonoBehaviour {
         ValidateAndDestroy(winMenu);
         ValidateAndDestroy(loseMenu);
 
-        //ADD REST OF THE MENUS!
-
-
-
         if (debugging)
             Log("Destroyed all entities successfully!");
-
-        //TODO: Add messages for each of these two
-
-
-
-
 
         if (loadedAssetsHandle.IsValid()) {
             Addressables.Release(loadedAssetsHandle);
@@ -727,7 +716,6 @@ public class GameInstance : MonoBehaviour {
         }
 
         if (Netcode.IsHost()) {
-            Log("Sent rpc to the client to restart");
             rpcManagementScript.RestartGameServerRpc(Netcode.GetClientID());
 
             Level currentLoadedLevel = levelManagementScript.GetCurrentLoadedLevel();

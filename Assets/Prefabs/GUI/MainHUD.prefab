@@ -1378,8 +1378,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8d032d13d2ee2e4e93098db64d791e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LocalMessageColor: {r: 0, g: 0, b: 1, a: 1}
-  Player2MessageColor: {r: 1, g: 0, b: 0, a: 1}
+  LocalMessageColor: {r: 0.038071156, g: 1, b: 0, a: 1}
+  Player2MessageColor: {r: 1, g: 0.21758744, b: 0, a: 1}
   chatMessageReceivedPopupDuration: 3
   chatMessageSentPopupDuration: 2
   chatMessagesRecycleLimit: 50
@@ -1781,7 +1781,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0.2895711, b: 0.764151, a: 0.39215687}
+  m_Color: {r: 0.26477396, g: 0.4149005, b: 0.6603774, a: 0.23529412}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2718,7 +2718,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0, g: 0.6054216, b: 0.6698113, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3177,7 +3177,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0.3453312, b: 0.6117647, a: 0.627451}
+  m_Color: {r: 0.26762193, g: 0.4466025, b: 0.5849056, a: 0.627451}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3325,8 +3325,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18

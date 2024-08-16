@@ -39,23 +39,8 @@ public class Level : Entity {
 
 
         pickupSpawnersParent.GetComponentsInChildren<PickupSpawner>(true, pickupSpawners);
-
-        //Find all pickups spawners. 
-
-
-        //Spawn Point
-        //Transform spawnPointTransform = transform.Find("SpawnPoint");
-        //if (Validate(spawnPointTransform, "No spawn point was found!\nSpawn point set to 0.0.0!", ValidationLevel.WARNING)) {
-        //    spawnPoint = spawnPointTransform.position;
-        //    spawnPointTransform.gameObject.SetActive(false);
-        //}
-
-
-
-
     }
     public void ProcessPickupSpawnRpc(int pickupID) {
-        Log("I was told that pickup was picked on server " + pickupID);
         if (pickupSpawners.Count == 0)
                 return;
 

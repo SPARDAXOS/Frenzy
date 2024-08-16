@@ -171,8 +171,11 @@ public class MainHUD : Entity {
         if (!chat)
             return;
 
-        chatOpened = state;
-        chat.SetActive(chatOpened);
+        if (state != chat.activeInHierarchy) {
+            chatOpened = state;
+            chat.SetActive(chatOpened);
+        }
+
         gameInstanceRef.SetCursorState(cursorState);
         if (chatOpened && select)
             chatInputFieldComp.Select();
@@ -199,11 +202,11 @@ public class MainHUD : Entity {
 
         TMP_Text textComponent = newMessage.GetComponent<TMP_Text>();
         if (local) {
-            textComponent.text = "Self: " + message;
+            textComponent.text = "You: " + message;
             textComponent.color = LocalMessageColor;
         }
         else {
-            textComponent.text = "Player 2: " + message;
+            textComponent.text = "Enemy: " + message;
             textComponent.color = Player2MessageColor;
         }
 
@@ -211,9 +214,9 @@ public class MainHUD : Entity {
         newMessage.SetActive(true);
     }
     private void ActivateChatPopup(float duration) {
-        if (duration <= 0.0f)
+        if (duration <= 0.0f || chatOpened)
             return;
-
+        
         SetChatState(true, false);
         chatMessagePopupTimer = duration;
     }
@@ -224,7 +227,8 @@ public class MainHUD : Entity {
         chatMessagePopupTimer -= Time.deltaTime;
         if (chatMessagePopupTimer <= 0.0f) {
             chatMessagePopupTimer = 0.0f;
-            SetChatState(false, false);
+            if (chatOpened)
+                SetChatState(false, false);
         }
     }
     public void ConfirmChatMessage() {
